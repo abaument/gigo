@@ -1,0 +1,140 @@
+// GIGO V1 - Production Database Schema
+// 
+// Multi-tenant SaaS schema with user authentication,
+// adapter configurations, destination forwarding, and audit logs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+// =============================================================================
+// USER MODEL
+// =============================================================================
+
+/// User profile synchronized with Supabase Auth.
+/// Stores additional user metadata and preferences.
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  adapters Adapter[]
+
+  @@map("users")
+}
+
+// =============================================================================
+// ADAPTER MODEL
+// =============================================================================
+
+/// Adapter represents a unique transformation endpoint configuration.
+/// Each adapter defines a target schema and optional destination for forwarding.
+model Adapter {
+  id          String  @id @default(uuid()) @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  name        String
+  description String?
+
+  // Schema Configuration
+  targetSchema       String  @map("target_schema") // JSON string of expected output
+  schemaSourceType   String? @map("schema_source_type") // "manual", "documentation", "url"
+  schemaSourceUrl    String? @map("schema_source_url") // Original doc URL if applicable
+
+  // Destination Configuration (Forwarding)
+  destinationUrl     String? @map("destination_url") // Where to POST transformed data
+  destinationMethod  String  @default("POST") @map("destination_method") // HTTP method
+  authMethod         String  @default("none") @map("auth_method") // "none", "bearer", "api_key", "basic"
+  authHeaderName     String? @map("auth_header_name") // Custom header name (e.g., "X-API-Key")
+  encryptedAuthValue String? @map("encrypted_auth_value") // Encrypted token/key
+
+  // Settings
+  isActive  Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs TransformationLog[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("adapters")
+}
+
+// =============================================================================
+// TRANSFORMATION LOG MODEL
+// =============================================================================
+
+/// TransformationLog records each webhook invocation for debugging and analytics.
+/// Stores input, output, and forwarding results.
+model TransformationLog {
+  id        String  @id @default(uuid()) @db.Uuid
+  adapterId String  @map("adapter_id") @db.Uuid
+
+  // Transformation Data
+  inputJson  String  @map("input_json") // Original JSON payload
+  outputJson String? @map("output_json") // Transformed JSON
+  success    Boolean @default(false)
+  error      String?
+
+  // Forwarding Results
+  forwardedAt        DateTime? @map("forwarded_at")
+  forwardingSuccess  Boolean?  @map("forwarding_success")
+  forwardingResponse String?   @map("forwarding_response") // Response from destination
+  forwardingStatus   Int?      @map("forwarding_status") // HTTP status code
+
+  // Performance Metrics
+  transformDuration Int? @map("transform_duration") // Transformation time in ms
+  forwardDuration   Int? @map("forward_duration") // Forwarding time in ms
+  totalDuration     Int? @map("total_duration") // Total processing time in ms
+
+  // Metadata
+  sourceIp  String?  @map("source_ip")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  adapter Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+
+  @@index([adapterId])
+  @@index([createdAt])
+  @@index([success])
+  @@map("transformation_logs")
+}
+
+// =============================================================================
+// USAGE TRACKING (For future billing)
+// =============================================================================
+
+/// Monthly usage tracking per user for billing and quotas.
+model UsageRecord {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  // Period
+  year  Int
+  month Int
+
+  // Counters
+  transformationCount Int @default(0) @map("transformation_count")
+  forwardingCount     Int @default(0) @map("forwarding_count")
+  tokensUsed          Int @default(0) @map("tokens_used")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@map("usage_records")
+}

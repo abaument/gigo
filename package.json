@@ -1,0 +1,39 @@
+{
+  "name": "universal-data-adapter",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.91.0",
+    "@types/crypto-js": "^4.2.2",
+    "ai": "^4.1.0",
+    "autoprefixer": "^10.4.20",
+    "crypto-js": "^4.2.0",
+    "next": "^14.2.23",
+    "openai": "^4.82.0",
+    "postcss": "^8.5.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.17",
+    "uuid": "^11.0.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^10.0.0",
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.3"
+  }
+}
