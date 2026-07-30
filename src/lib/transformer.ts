@@ -1,40 +1,38 @@
 /**
  * AI-powered JSON transformation engine.
  *
- * Uses OpenAI's structured outputs to ensure reliable transformation
- * of arbitrary JSON payloads to match a defined target schema.
+ * Derives a strict JSON Schema from the adapter's target example, then
+ * delegates the AI call to the configured provider (OpenAI structured
+ * outputs or Anthropic forced tool use).
+ *
+ * The target schema lives in the system prompt: it is identical for
+ * every call of the same adapter, which makes it cacheable on the
+ * Anthropic side (prompt caching) and is neutral for OpenAI.
  */
 
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getProvider } from '@/lib/providers';
+import {
+  ProviderError,
+  type ProviderErrorCode,
+  type ProviderName,
+  type TransformUsage,
+} from '@/lib/providers/types';
 
 /**
- * Generates a JSON schema from an example JSON object.
+ * Generates a strict JSON Schema from an example JSON object.
  *
- * Converts a sample JSON structure into a valid JSON Schema that can be
- * used with OpenAI's structured outputs feature.
- *
- * Parameters
- * ----------
- * example : unknown
- *     Example JSON object to derive schema from.
- *
- * Returns
- * -------
- * object
- *     JSON Schema representation of the example structure.
+ * Strict mode (OpenAI structured outputs and Anthropic strict tool use)
+ * rejects degenerate sub-schemas, so unknown types and empty arrays fall
+ * back to `string` instead of `{}`.
  */
-function generateJsonSchemaFromExample(example: unknown): Record<string, unknown> {
+export function generateJsonSchemaFromExample(example: unknown): Record<string, unknown> {
   if (example === null) {
     return { type: 'null' };
   }
 
   if (Array.isArray(example)) {
     if (example.length === 0) {
-      return { type: 'array', items: {} };
+      return { type: 'array', items: { type: 'string' } };
     }
     return {
       type: 'array',
@@ -71,62 +69,27 @@ function generateJsonSchemaFromExample(example: unknown): Record<string, unknown
     return { type: 'boolean' };
   }
 
-  return {};
+  return { type: 'string' };
 }
 
-/**
- * Result of a transformation operation.
- */
 export interface TransformResult {
   success: boolean;
   data?: unknown;
   error?: string;
+  errorCode?: ProviderErrorCode;
   durationMs: number;
+  usage?: TransformUsage;
+  provider?: ProviderName;
+  model?: string;
 }
 
-/**
- * Transform arbitrary JSON to match a target schema using AI.
- *
- * This is the core transformation engine. It uses OpenAI's structured
- * outputs feature to ensure the AI response strictly conforms to the
- * target schema structure.
- *
- * Parameters
- * ----------
- * inputJson : unknown
- *     Arbitrary JSON payload to transform.
- * targetSchemaExample : string
- *     JSON string representing an example of the desired output structure.
- *
- * Returns
- * -------
- * TransformResult
- *     Object containing success status, transformed data or error message,
- *     and processing duration.
- *
- * Notes
- * -----
- * The transformation uses semantic understanding to:
- * - Rename keys based on meaning (e.g., "firstName" -> "first_name")
- * - Convert types appropriately (e.g., "42" -> 42)
- * - Extract nested values to flat structures or vice versa
- * - Handle missing fields gracefully with sensible defaults
- */
-export async function transformJson(
-  inputJson: unknown,
-  targetSchemaExample: string
-): Promise<TransformResult> {
-  const startTime = Date.now();
+export interface TransformJsonOptions {
+  provider?: string;
+  modelName?: string;
+}
 
-  try {
-    // Parse the target schema example
-    const targetExample = JSON.parse(targetSchemaExample);
-
-    // Generate JSON Schema from the example
-    const jsonSchema = generateJsonSchemaFromExample(targetExample);
-
-    // Build the system prompt that enforces strict transformation
-    const systemPrompt = `You are a rigid API middleware that transforms JSON payloads.
+function buildSystemPrompt(targetSchemaExample: string): string {
+  return `You are a rigid API middleware that transforms JSON payloads.
 
 Your task:
 1. Analyze the incoming JSON payload
@@ -144,84 +107,65 @@ CRITICAL RULES:
 - NEVER invent or hallucinate fields not in the target schema
 - NEVER add extra keys or nested structures not defined in the schema
 - Match the EXACT structure of the target schema
-- Preserve semantic meaning when mapping fields`;
-
-    // Create the user message with both input and target example
-    const userMessage = `Transform this incoming JSON payload to match the target schema.
-
-INCOMING JSON PAYLOAD:
-${JSON.stringify(inputJson, null, 2)}
+- Preserve semantic meaning when mapping fields
 
 TARGET SCHEMA EXAMPLE (your output must match this exact structure):
-${targetSchemaExample}
+${targetSchemaExample}`;
+}
 
-Transform the incoming payload to match the target structure.`;
+/**
+ * Transform arbitrary JSON to match a target schema using the
+ * configured AI provider. Never throws — errors come back as a failed
+ * TransformResult with a typed errorCode.
+ */
+export async function transformJson(
+  inputJson: unknown,
+  targetSchemaExample: string,
+  opts?: TransformJsonOptions
+): Promise<TransformResult> {
+  const startTime = Date.now();
+  const provider = getProvider(opts?.provider);
 
-    // Call OpenAI with structured outputs
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-2024-08-06',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'transformed_data',
-          strict: true,
-          schema: jsonSchema,
-        },
-      },
-      temperature: 0, // Deterministic output for consistency
-      max_tokens: 4096,
+  try {
+    const targetExample = JSON.parse(targetSchemaExample);
+    const jsonSchema = generateJsonSchemaFromExample(targetExample);
+    const systemPrompt = buildSystemPrompt(targetSchemaExample);
+
+    const result = await provider.transform(inputJson, jsonSchema, systemPrompt, {
+      modelName: opts?.modelName,
     });
-
-    const content = response.choices[0]?.message?.content;
-
-    if (!content) {
-      return {
-        success: false,
-        error: 'No response from AI model',
-        durationMs: Date.now() - startTime,
-      };
-    }
-
-    // Parse the transformed JSON
-    const transformedData = JSON.parse(content);
 
     return {
       success: true,
-      data: transformedData,
+      data: result.data,
       durationMs: Date.now() - startTime,
+      usage: result.usage,
+      provider: provider.name,
+      model: result.model,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown transformation error';
-    
+    if (error instanceof ProviderError) {
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        durationMs: Date.now() - startTime,
+        provider: provider.name,
+      };
+    }
+
     return {
       success: false,
-      error: errorMessage,
+      error: error instanceof Error ? error.message : 'Unknown transformation error',
       durationMs: Date.now() - startTime,
+      provider: provider.name,
     };
   }
 }
 
 /**
- * Validate that transformed output matches target schema keys.
- *
- * Provides an additional safety check to ensure the AI didn't
- * hallucinate extra keys.
- *
- * Parameters
- * ----------
- * transformed : unknown
- *     The transformed JSON output.
- * targetExample : unknown
- *     The target schema example.
- *
- * Returns
- * -------
- * object
- *     Validation result with isValid flag and any extra keys found.
+ * Validate that transformed output matches target schema keys — a safety
+ * check that the AI didn't hallucinate extra keys.
  */
 export function validateTransformedOutput(
   transformed: unknown,
@@ -240,7 +184,7 @@ export function validateTransformedOutput(
       return;
     }
 
-    const objKeys = new Set(Object.keys(obj as Record<string, unknown>));
+    const objKeys = Object.keys(obj as Record<string, unknown>);
     const targetKeys = new Set(Object.keys(target as Record<string, unknown>));
 
     for (const key of objKeys) {

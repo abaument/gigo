@@ -50,12 +50,21 @@ model Adapter {
   schemaSourceType   String? @map("schema_source_type") // "manual", "documentation", "url"
   schemaSourceUrl    String? @map("schema_source_url") // Original doc URL if applicable
 
+  // AI Model Configuration
+  modelProvider String  @default("openai") @map("model_provider") // "openai", "anthropic"
+  modelName     String? @map("model_name") // null => provider default
+
   // Destination Configuration (Forwarding)
   destinationUrl     String? @map("destination_url") // Where to POST transformed data
   destinationMethod  String  @default("POST") @map("destination_method") // HTTP method
   authMethod         String  @default("none") @map("auth_method") // "none", "bearer", "api_key", "basic"
   authHeaderName     String? @map("auth_header_name") // Custom header name (e.g., "X-API-Key")
   encryptedAuthValue String? @map("encrypted_auth_value") // Encrypted token/key
+  forwardTimeoutMs   Int     @default(15000) @map("forward_timeout_ms")
+
+  // Security
+  webhookSecret   String? @map("webhook_secret") // if set, POST requires matching X-Webhook-Secret
+  rateLimitPerMin Int     @default(60) @map("rate_limit_per_min")
 
   // Settings
   isActive  Boolean @default(true) @map("is_active")
@@ -98,18 +107,46 @@ model TransformationLog {
   forwardDuration   Int? @map("forward_duration") // Forwarding time in ms
   totalDuration     Int? @map("total_duration") // Total processing time in ms
 
+  // AI Usage
+  provider     String? // "openai", "anthropic"
+  modelName    String? @map("model_name")
+  inputTokens  Int?    @map("input_tokens")
+  outputTokens Int?    @map("output_tokens")
+
+  // Origin
+  isTest     Boolean @default(false) @map("is_test") // playground run
+  replayOfId String? @map("replay_of_id") @db.Uuid
+
   // Metadata
   sourceIp  String?  @map("source_ip")
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  adapter Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapter  Adapter             @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  replayOf TransformationLog?  @relation("Replays", fields: [replayOfId], references: [id], onDelete: SetNull)
+  replays  TransformationLog[] @relation("Replays")
 
   @@index([adapterId])
+  @@index([adapterId, createdAt])
   @@index([createdAt])
   @@index([success])
   @@map("transformation_logs")
+}
+
+// =============================================================================
+// RATE LIMITING
+// =============================================================================
+
+/// Fixed-window rate limit counters, one row per adapter per minute.
+/// id = "<adapterId>:<epochMinute>"; expired rows are lazily deleted.
+model RateLimitWindow {
+  id        String   @id
+  count     Int      @default(1)
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("rate_limit_windows")
 }
 
 // =============================================================================

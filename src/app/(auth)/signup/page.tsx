@@ -7,9 +7,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SignUpPage() {
+  const t = useTranslations('auth');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('passwordTooShort'));
       setLoading(false);
       return;
     }
@@ -63,13 +65,12 @@ export default function SignUpPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="font-display text-3xl text-cream mb-3">Check your email</h1>
+          <h1 className="font-display text-3xl text-cream mb-3">{t('checkEmailTitle')}</h1>
           <p className="text-taupe font-accent mb-8">
-            We sent a confirmation link to <span className="text-amber">{email}</span>. 
-            Click the link to activate your account.
+            {t('checkEmailDescription', { email })}
           </p>
           <Link href="/login" className="btn-secondary">
-            Back to login
+            {t('signInLink')}
           </Link>
         </div>
       </div>
@@ -98,8 +99,8 @@ export default function SignUpPage() {
               </svg>
             </div>
           </Link>
-          <h1 className="mt-6 font-display text-3xl text-cream">Create an account</h1>
-          <p className="mt-2 text-taupe font-accent">Start transforming your data with GIGO</p>
+          <h1 className="mt-6 font-display text-3xl text-cream">{t('signupTitle')}</h1>
+          
         </div>
 
         {/* Form */}
@@ -112,7 +113,7 @@ export default function SignUpPage() {
 
           <div className="space-y-5">
             <div>
-              <label htmlFor="name" className="label">Name</label>
+              <label htmlFor="name" className="label">{t('nameLabel')}</label>
               <input
                 id="name"
                 type="text"
@@ -126,7 +127,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="label">Email</label>
+              <label htmlFor="email" className="label">{t('emailLabel')}</label>
               <input
                 id="email"
                 type="email"
@@ -139,7 +140,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="label">Password</label>
+              <label htmlFor="password" className="label">{t('passwordLabel')}</label>
               <input
                 id="password"
                 type="password"
@@ -150,7 +151,7 @@ export default function SignUpPage() {
                 required
                 minLength={6}
               />
-              <p className="text-xs text-clay mt-1.5 font-accent">At least 6 characters</p>
+              
             </div>
           </div>
 
@@ -165,19 +166,19 @@ export default function SignUpPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Creating account...
+                {t('signingUp')}
               </>
             ) : (
-              'Create account'
+              t('signUpSubmit')
             )}
           </button>
         </form>
 
         {/* Login link */}
         <p className="mt-6 text-center text-taupe font-accent animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          Already have an account?{' '}
+          {t('haveAccount')}{' '}
           <Link href="/login" className="text-amber hover:underline">
-            Sign in
+            {t('signInLink')}
           </Link>
         </p>
       </div>

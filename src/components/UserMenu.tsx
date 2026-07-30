@@ -7,10 +7,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 export function UserMenu() {
+  const t = useTranslations('nav');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -50,10 +52,10 @@ export function UserMenu() {
     return (
       <div className="flex items-center gap-3">
         <Link href="/login" className="btn-secondary text-sm py-2">
-          Sign in
+          {t('signIn')}
         </Link>
         <Link href="/signup" className="btn-primary text-sm py-2">
-          Get started
+          {t('getStarted')}
         </Link>
       </div>
     );
@@ -108,7 +110,7 @@ export function UserMenu() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Sign out
+              {t('signOut')}
             </button>
           </div>
         </>

@@ -7,9 +7,11 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
+  const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -66,8 +68,8 @@ export default function LoginPage() {
               </svg>
             </div>
           </Link>
-          <h1 className="mt-6 font-display text-3xl text-cream">Welcome back</h1>
-          <p className="mt-2 text-taupe font-accent">Sign in to your GIGO account</p>
+          <h1 className="mt-6 font-display text-3xl text-cream">{t('loginTitle')}</h1>
+          
         </div>
 
         {/* Form */}
@@ -80,7 +82,7 @@ export default function LoginPage() {
 
           <div className="space-y-5">
             <div>
-              <label htmlFor="email" className="label">Email</label>
+              <label htmlFor="email" className="label">{t('emailLabel')}</label>
               <input
                 id="email"
                 type="email"
@@ -94,7 +96,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="label">Password</label>
+              <label htmlFor="password" className="label">{t('passwordLabel')}</label>
               <input
                 id="password"
                 type="password"
@@ -118,19 +120,19 @@ export default function LoginPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Signing in...
+                {t('signingIn')}
               </>
             ) : (
-              'Sign in'
+              t('signInSubmit')
             )}
           </button>
         </form>
 
         {/* Sign up link */}
         <p className="mt-6 text-center text-taupe font-accent animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          Don&apos;t have an account?{' '}
+          {t('noAccount')}{' '}
           <Link href="/signup" className="text-amber hover:underline">
-            Sign up
+            {t('signUpLink')}
           </Link>
         </p>
       </div>

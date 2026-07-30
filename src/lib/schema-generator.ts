@@ -6,9 +6,19 @@
  */
 
 import OpenAI from 'openai';
+import { z } from 'zod';
+import { fetchWithGuards, SsrfError } from '@/lib/ssrf-guard';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 30_000,
+  maxRetries: 2,
+});
+
+const generatedSchemaResponse = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  schema: z.record(z.unknown()),
 });
 
 /**
@@ -102,7 +112,7 @@ EXAMPLE OUTPUT:
 }`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-2024-08-06',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Analyze this documentation and extract the JSON schema:\n\n${documentationText}` },
@@ -121,10 +131,9 @@ EXAMPLE OUTPUT:
       };
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = generatedSchemaResponse.safeParse(JSON.parse(content));
 
-    // Validate the response structure
-    if (!parsed.schema || typeof parsed.schema !== 'object') {
+    if (!parsed.success) {
       return {
         success: false,
         error: 'Could not extract a valid schema from the documentation',
@@ -133,9 +142,9 @@ EXAMPLE OUTPUT:
 
     return {
       success: true,
-      schema: JSON.stringify(parsed.schema, null, 2),
-      schemaName: parsed.name || 'Extracted Schema',
-      description: parsed.description || '',
+      schema: JSON.stringify(parsed.data.schema, null, 2),
+      schemaName: parsed.data.name || 'Extracted Schema',
+      description: parsed.data.description || '',
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error during schema generation';
@@ -165,37 +174,36 @@ export async function generateSchemaFromUrl(
   url: string
 ): Promise<SchemaGenerationResult> {
   try {
-    // Fetch the URL content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'GIGO Schema Generator/1.0',
-        'Accept': 'text/html,application/json,text/plain',
-      },
+    // Fetch with SSRF protection: private/metadata IPs blocked (including
+    // on redirects), 10s timeout, 2MB response cap.
+    const response = await fetchWithGuards(url, {
+      timeoutMs: 10_000,
+      maxBytes: 2 * 1024 * 1024,
     });
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       return {
         success: false,
-        error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
+        error: `Failed to fetch URL: ${response.status}`,
       };
     }
 
-    const contentType = response.headers.get('content-type') || '';
-    let text: string;
+    let text = response.text;
 
-    if (contentType.includes('application/json')) {
-      // If it's JSON, just format it nicely
-      const json = await response.json();
-      return {
-        success: true,
-        schema: JSON.stringify(json, null, 2),
-        schemaName: 'Imported JSON',
-        description: `Schema imported from ${url}`,
-      };
+    // If the response is pure JSON, use it directly as the schema example.
+    try {
+      const json = JSON.parse(text);
+      if (json && typeof json === 'object') {
+        return {
+          success: true,
+          schema: JSON.stringify(json, null, 2),
+          schemaName: 'Imported JSON',
+          description: `Schema imported from ${url}`,
+        };
+      }
+    } catch {
+      // not JSON — treat as HTML/text documentation
     }
-
-    // For HTML/text, extract the content
-    text = await response.text();
 
     // Basic HTML stripping (keep it simple for MVP)
     text = text
@@ -213,6 +221,9 @@ export async function generateSchemaFromUrl(
     // Generate schema from the extracted text
     return await generateSchemaFromDocs(text);
   } catch (error) {
+    if (error instanceof SsrfError) {
+      return { success: false, error: error.message };
+    }
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch URL';
     return {
       success: false,

@@ -269,3 +269,91 @@ body::before {
   background-clip: text;
   filter: drop-shadow(0 2px 4px rgba(212, 168, 83, 0.3));
 }
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.4s ease-out;
+}
+
+/* Table row hover effect */
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(45, 35, 27, 0.5);
+}
+
+/* Professional scrollbar for code blocks */
+.code-block::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.code-block::-webkit-scrollbar-track {
+  background: var(--roast);
+  border-radius: 3px;
+}
+
+.code-block::-webkit-scrollbar-thumb {
+  background: var(--timber);
+  border-radius: 3px;
+}
+
+.code-block::-webkit-scrollbar-thumb:hover {
+  background: var(--clay);
+}
+
+/* Drawer overlay animation */
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.drawer-overlay {
+  animation: overlayFadeIn 0.2s ease-out;
+}
