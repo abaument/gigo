@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, revamp-v2]
+  pull_request:
+
+env:
+  # Dummy values — module-load guards require them; no real service is hit.
+  ENCRYPTION_KEY: ci-dummy-encryption-key-32ch!!
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy
+  SUPABASE_SERVICE_ROLE_KEY: ci-dummy
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+  NEXT_PUBLIC_BASE_URL: http://localhost:3000
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bunx prisma generate
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Unit tests
+        run: bun run test
+
+      - name: Production build
+        run: bun run build

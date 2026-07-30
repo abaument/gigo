@@ -1,244 +1,144 @@
-# GIGO V1 - Garbage In, Gold Out
+# GIGO — Garbage In, Gold Out
 
-A production-ready SaaS platform for intelligent JSON transformation. Transform chaotic data into perfectly structured payloads using AI.
+**The AI-powered universal data adapter.** Send any JSON to a webhook, get back a payload that matches *your* schema — renamed, retyped, restructured — and optionally forwarded straight to its destination.
 
-## 🚀 What's New in V1
+No field-by-field mapping rules. You show GIGO **one example** of the output you want; the AI understands the *meaning* of incoming data and reshapes it accordingly.
 
-- **Multi-tenant SaaS** - User authentication with Supabase
-- **Smart Schema Generator** - AI extracts schemas from API documentation
-- **Destination Forwarding** - Auto-forward transformed data to any endpoint
-- **Encrypted Credentials** - Secure storage for API keys and tokens
-- **Advanced Logging** - Full audit trail with timing metrics
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|------------|
-| Framework | Next.js 14+ (App Router) |
-| Auth | Supabase Auth |
-| Database | PostgreSQL (Supabase) |
-| ORM | Prisma |
-| AI | OpenAI GPT-4o (Structured Outputs) |
-| Validation | Zod |
-| Styling | Tailwind CSS |
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Supabase account ([supabase.com](https://supabase.com))
-- OpenAI API key ([platform.openai.com](https://platform.openai.com))
-
-### 1. Clone & Install
-
-```bash
-cd universal-data-adapter
-npm install
+```
+{ "user_first_name": "jean",          { "first_name": "Jean",
+  "user_MAIL": "jean@ex.fr",    ──►     "email": "jean@ex.fr",
+  "amount": "49,90 €",                  "amount_cents": 4990,
+  "infos": { "ville": "Lyon" } }        "city": "Lyon" }
 ```
 
-### 2. Setup Supabase
+## Why
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **Settings > API** and copy:
-   - Project URL (`NEXT_PUBLIC_SUPABASE_URL`)
-   - Anon public key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-   - Service role key (`SUPABASE_SERVICE_ROLE_KEY`)
-3. Go to **Settings > Database** and copy the connection string
-
-### 3. Configure Environment
-
-Create a `.env` file:
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-
-# Database (Supabase PostgreSQL)
-DATABASE_URL="postgresql://postgres:password@db.your-project.supabase.co:5432/postgres"
-
-# OpenAI
-OPENAI_API_KEY="sk-your-key"
-
-# Encryption (generate a random 32-char string)
-ENCRYPTION_KEY="your-32-character-encryption-key!"
-
-# Base URL
-NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-```
-
-### 4. Initialize Database
-
-```bash
-# Generate Prisma client
-npm run db:generate
-
-# Push schema to Supabase
-npm run db:push
-```
-
-### 5. Run Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
+Every service speaks its own dialect: `firstName` here, `first_name` there, amounts as strings, nested structures nobody agreed on. Connecting N sources to M destinations means writing and maintaining N×M brittle integrations. GIGO replaces them with a single hub: one webhook per target schema, AI does the translation, full audit trail included.
 
 ## Features
 
-### 🔐 Authentication
+- **Adapters by example** — paste a sample of the JSON you want, or let AI extract the schema from API docs or a documentation URL
+- **Two AI providers** — OpenAI (GPT-4o structured outputs) or Anthropic (Claude, strict tool use + prompt caching), selectable per adapter
+- **Live playground** — test payloads in the UI: see the transformed output, latency, and token usage before wiring anything
+- **Destination forwarding** — auto-deliver transformed data (POST/PUT/PATCH) with Bearer / API-Key / Basic auth, credentials encrypted at rest (AES-256-GCM)
+- **Production-grade webhook** — per-adapter secret (timing-safe verification), rate limiting, 1MB payload cap, timeouts and retries everywhere
+- **Full observability** — every transformation logged with input/output, durations, tokens, trace IDs; cursor-paginated log explorer with live refresh and one-click **replay**
+- **Bilingual UI** — English / French, switchable at runtime
+- **Multi-tenant** — Supabase Auth, all data scoped per user
 
-- Sign up / Sign in with email
-- Protected routes with middleware
-- User-scoped data (row-level security logic)
+## Quickstart
 
-### ✨ Smart Schema Generator
+### Prerequisites
 
-Generate target schemas automatically from:
+- [Bun](https://bun.sh) 1.x
+- A [Supabase](https://supabase.com) project (auth + Postgres)
+- An [OpenAI](https://platform.openai.com) and/or [Anthropic](https://console.anthropic.com) API key
 
-1. **Documentation Text** - Paste cURL examples or API docs
-2. **URL Import** - Fetch and parse documentation pages
-3. **Manual Input** - Write JSON schemas directly
+### Setup
 
-### 🎯 Transformation Engine
-
-1. Receives ANY JSON payload via webhook
-2. AI transforms to match your target schema
-3. Handles:
-   - Key renaming (`firstName` → `first_name`)
-   - Type conversion (`"42"` → `42`)
-   - Nested restructuring
-   - Missing field handling
-
-### 📤 Destination Forwarding
-
-Configure adapters to auto-forward transformed data:
-
-| Auth Method | Description |
-|-------------|-------------|
-| None | No authentication |
-| Bearer | `Authorization: Bearer <token>` |
-| API Key | Custom header with key value |
-| Basic | HTTP Basic authentication |
-
-### 📊 Logging & Analytics
-
-Every transformation is logged with:
-- Input/output JSON
-- Success/failure status
-- Transform duration
-- Forward duration (if applicable)
-- Destination response
-- Source IP & User Agent
-
-## API Reference
-
-### POST /api/webhook/[adapterId]
-
-Transform a JSON payload.
-
-**Request:**
 ```bash
-curl -X POST http://localhost:3000/api/webhook/YOUR_ADAPTER_ID \
+git clone <repo-url>
+cd universal-data-adapter
+bun install
+
+cp .env.example .env       # then fill in your values
+bun run db:deploy          # apply database migrations
+bun run db:generate
+bun run dev                # → http://localhost:3000
+```
+
+> `ENCRYPTION_KEY` (min 16 chars) is **required** — the app refuses to start without it. It encrypts destination credentials with AES-256-GCM.
+
+### Docker
+
+```bash
+docker compose up -d       # see docker-compose.yml for configuration
+```
+
+## Usage
+
+1. **Sign up**, then create an adapter: paste an example of your target JSON (or generate it from docs).
+2. Pick the AI model, optionally configure a destination + webhook secret.
+3. Test it in the **Playground** on the adapter page.
+4. Point any service at your webhook:
+
+```bash
+curl -X POST https://your-instance/api/webhook/<ADAPTER_ID> \
   -H "Content-Type: application/json" \
-  -d '{"user_first_name": "John", "user_email": "john@test.com"}'
+  -H "X-Webhook-Secret: whsec_..." \
+  -d '{"any": "json", "shape": "works"}'
 ```
 
-**Response (without forwarding):**
+Response:
+
 ```json
 {
-  "success": true,
-  "data": {
-    "firstName": "John",
-    "email": "john@test.com"
-  },
+  "status": "success",
+  "trace_id": "…",
+  "data": { "…": "transformed payload" },
   "meta": {
-    "adapterId": "...",
-    "transformedAt": "2024-01-15T10:30:00Z",
-    "transformDurationMs": 1234,
-    "totalDurationMs": 1250
+    "duration_ms": 1250, "transform_duration_ms": 1180,
+    "provider": "anthropic", "model": "claude-sonnet-5",
+    "input_tokens": 412, "output_tokens": 96
   }
 }
 ```
 
-**Response (with forwarding):**
-```json
-{
-  "success": true,
-  "data": { ... },
-  "meta": { ... },
-  "forwarding": {
-    "success": true,
-    "status": 200,
-    "durationMs": 456,
-    "response": { ... }
-  }
-}
-```
+Errors are typed: `401 INVALID_SECRET`, `413 PAYLOAD_TOO_LARGE`, `429 RATE_LIMITED` (+ `Retry-After`), `422 MAX_TOKENS`, `504 TIMEOUT` — always with a `trace_id` you can look up in the logs.
 
-### GET /api/webhook/[adapterId]
-
-Get adapter info and usage instructions.
-
-## Project Structure
+## Architecture
 
 ```
-src/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   └── signup/page.tsx
-│   ├── adapters/
-│   │   ├── new/page.tsx         # Create adapter with Smart Schema
-│   │   └── [id]/logs/page.tsx   # View transformation logs
-│   ├── api/webhook/[id]/route.ts # Transformation engine
-│   ├── layout.tsx
-│   └── page.tsx                  # Dashboard
-├── components/
-│   ├── AdapterCard.tsx
-│   ├── LogEntry.tsx
-│   ├── UserMenu.tsx
-│   └── ...
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts            # Browser client
-│   │   ├── server.ts            # Server client
-│   │   └── middleware.ts        # Session refresh
-│   ├── actions.ts               # Server actions
-│   ├── db.ts                    # Prisma client
-│   ├── encryption.ts            # AES encryption
-│   ├── schema-generator.ts      # AI doc parser
-│   ├── transformer.ts           # OpenAI transformation
-│   └── schemas.ts               # Zod schemas
-├── middleware.ts                # Auth middleware
-└── ...
+ Sender ──POST──►  /api/webhook/[id]
+                     │  secret check (timing-safe) → rate limit → size cap
+                     ▼
+              shared pipeline (src/lib/pipeline.ts)
+                     │  transform → validate → forward → log → usage
+                     ▼
+          provider layer (src/lib/providers/)
+            ├─ openai.ts     GPT-4o, strict structured outputs
+            └─ anthropic.ts  Claude, forced strict tool use + prompt caching
 ```
 
-## Security
+The same pipeline powers the public webhook, the authenticated playground (`POST /api/adapters/[id]/test`) and log replay — three entry points, one behavior.
 
-- **Authentication** - Supabase Auth with email/password
-- **Authorization** - All queries filter by `userId`
-- **Encryption** - API keys encrypted with AES before storage
-- **Webhooks** - Public endpoints (by design) with CORS support
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 14 (App Router), TypeScript strict |
+| Database | PostgreSQL + Prisma (versioned migrations) |
+| Auth | Supabase Auth |
+| AI | `openai` + `@anthropic-ai/sdk` behind a common `TransformProvider` interface |
+| i18n | next-intl (cookie mode, no URL prefix) |
+| Tests | Vitest — `bun run test` |
+| Tooling | Bun |
 
-## Deployment
+## Security notes
 
-### Vercel (Recommended)
+- Destination credentials: AES-256-GCM, versioned ciphertext format, no fallback key.
+- Webhook secrets: compared timing-safe (SHA-256 + `timingSafeEqual`).
+- User-supplied URLs (doc import, destinations) go through an SSRF guard: DNS resolution, private/link-local/metadata IP blocking, re-validation on every redirect, streamed 2MB response cap.
+- Rate limiting: fixed window in Postgres — serverless-safe, zero extra infrastructure.
 
-1. Connect your repository to Vercel
-2. Add environment variables
-3. Deploy!
+## Development
 
-### Other Platforms
+```bash
+bun run test          # 61 unit/integration tests
+bun run test:watch
+bunx tsc --noEmit     # typecheck
+bun run build         # production build
+bun run db:studio     # browse the database
+```
 
-Ensure your platform supports:
-- Node.js 18+
-- PostgreSQL database
-- Environment variables
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## Roadmap
+
+- [ ] One-command self-host (Docker) polish
+- [ ] Local model support (Ollama) via the provider interface
+- [ ] Per-user usage quotas
+- [ ] Input formats beyond JSON (CSV, XML)
+- [ ] Batch transformations
 
 ## License
 
-MIT
+**TBD** — license selection in progress ahead of the public release.

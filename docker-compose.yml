@@ -1,0 +1,52 @@
+# GIGO — self-host with Docker
+#
+#   1. cp .env.example .env   (fill in your values)
+#   2. docker compose up -d
+#
+# Auth relies on a Supabase project (free tier works): set the three
+# SUPABASE_* variables in .env. DATABASE_URL can point either to your
+# Supabase Postgres or to the bundled `db` service below
+# (postgresql://gigo:gigo@db:5432/gigo).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gigo
+      POSTGRES_PASSWORD: gigo
+      POSTGRES_DB: gigo
+    volumes:
+      - gigo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gigo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  gigo-db:
