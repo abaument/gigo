@@ -141,4 +141,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-**TBD** — license selection in progress ahead of the public release.
+[MIT](LICENSE)
