@@ -40,8 +40,8 @@ vi.mock('openai', () => {
 process.env.ANTHROPIC_API_KEY = 'test-key';
 process.env.OPENAI_API_KEY = 'test-key';
 
-const { getProvider } = await import('../providers');
-const { ProviderError } = await import('../providers/types');
+import { getProvider } from '../providers';
+import { ProviderError } from '../providers/types';
 
 const JSON_SCHEMA = {
   type: 'object',

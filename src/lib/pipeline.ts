@@ -9,7 +9,7 @@ import type { Adapter } from '@prisma/client';
 import { db } from '@/lib/db';
 import { transformJson, validateTransformedOutput, type TransformResult } from '@/lib/transformer';
 import { forwardToDestination, type ForwardResult } from '@/lib/forwarder';
-import { recordUsage } from '@/lib/usage';
+import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
 
 export interface PipelineArgs {
   adapter: Adapter;
@@ -34,6 +34,46 @@ export interface PipelineResult {
 export async function runTransformation(args: PipelineArgs): Promise<PipelineResult> {
   const { adapter, inputJson } = args;
   const startTime = Date.now();
+
+  // Monthly spend guard — checked before any AI call. Never throws:
+  // a quota-check failure must not take the webhook down.
+  const quota = await checkMonthlyQuota(adapter.userId).catch(
+    () => ({ allowed: true, used: 0, quota: 0 })
+  );
+  if (!quota.allowed) {
+    const transform: TransformResult = {
+      success: false,
+      error: `Monthly token quota exceeded (${quota.used}/${quota.quota}). Resets on the 1st.`,
+      errorCode: 'RATE_LIMIT',
+      durationMs: 0,
+    };
+    let traceId: string | null = null;
+    try {
+      const logEntry = await db.transformationLog.create({
+        data: {
+          adapterId: adapter.id,
+          inputJson: JSON.stringify(inputJson, null, 2),
+          success: false,
+          error: transform.error,
+          totalDuration: Date.now() - startTime,
+          isTest: args.isTest,
+          sourceIp: args.sourceIp ?? null,
+          userAgent: args.userAgent ?? null,
+        },
+      });
+      traceId = logEntry.id;
+    } catch (error) {
+      console.error('Failed to write quota log:', error);
+    }
+    return {
+      ok: false,
+      traceId,
+      transform,
+      forwarding: null,
+      warnings: [],
+      totalDurationMs: Date.now() - startTime,
+    };
+  }
 
   const transform = await transformJson(inputJson, adapter.targetSchema, {
     provider: adapter.modelProvider,

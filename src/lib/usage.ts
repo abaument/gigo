@@ -14,6 +14,44 @@ export interface UsageDelta {
   tokens?: number;
 }
 
+export interface QuotaCheck {
+  allowed: boolean;
+  used: number;
+  quota: number;
+}
+
+/**
+ * Monthly per-user token quota, read from MONTHLY_TOKEN_QUOTA.
+ * 0 / unset = unlimited (self-host default). Set it on shared/demo
+ * deployments so a single user cannot drain the AI credits.
+ */
+export function getMonthlyTokenQuota(): number {
+  const raw = Number(process.env.MONTHLY_TOKEN_QUOTA ?? 0);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+}
+
+export async function checkMonthlyQuota(userId: string): Promise<QuotaCheck> {
+  const quota = getMonthlyTokenQuota();
+  if (quota === 0) {
+    return { allowed: true, used: 0, quota: 0 };
+  }
+
+  const now = new Date();
+  const record = await db.usageRecord.findUnique({
+    where: {
+      userId_year_month: {
+        userId,
+        year: now.getUTCFullYear(),
+        month: now.getUTCMonth() + 1,
+      },
+    },
+    select: { tokensUsed: true },
+  });
+
+  const used = record?.tokensUsed ?? 0;
+  return { allowed: used < quota, used, quota };
+}
+
 export async function recordUsage(userId: string, delta: UsageDelta): Promise<void> {
   const now = new Date();
   const year = now.getUTCFullYear();
