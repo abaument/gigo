@@ -9,11 +9,17 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { fetchWithGuards, SsrfError } from '@/lib/ssrf-guard';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 30_000,
-  maxRetries: 2,
-});
+// Lazy client: the SDK throws at construction when the key is missing,
+// which must not happen at module load (build/CI run without any key).
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  openaiClient ??= new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 30_000,
+    maxRetries: 2,
+  });
+  return openaiClient;
+}
 
 const generatedSchemaResponse = z.object({
   name: z.string().optional(),
@@ -111,7 +117,7 @@ EXAMPLE OUTPUT:
   }
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-2024-08-06',
       messages: [
         { role: 'system', content: systemPrompt },
