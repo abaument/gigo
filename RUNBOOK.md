@@ -172,6 +172,18 @@ Page Logs : le call apparaît (indicateur live), clique → drawer avec input/ou
 
 ---
 
+## 4bis. Déployer la démo publique sur Vercel
+
+1. [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `abaument/gigo` (framework Next.js auto-détecté).
+2. Variables d'environnement à coller (Settings → Environment Variables) :
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (⚠ les valeurs **régénérées**)
+   - `DATABASE_URL` = **pooler** (IPv4, obligatoire sur Vercel) : `postgresql://postgres.<ref>:<MDP-ENCODÉ>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres`
+   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ENCRYPTION_KEY`
+   - `NEXT_PUBLIC_BASE_URL` = l'URL Vercel (ex. `https://gigo-demo.vercel.app`) — redéployer après l'avoir connue
+   - `MONTHLY_TOKEN_QUOTA` = `150000` (garde-fou : ~quelques euros max par utilisateur/mois)
+3. En parallèle, plafonner la dépense côté fournisseurs : OpenAI → Billing → *Monthly budget* ; Anthropic → *Spend limits*.
+4. Chaque `git push` sur main redéploie automatiquement. Supprimer le projet Vercel après la démo = le « site éphémère » disparaît.
+
 ## 5. Rappels sécurité (avant de rendre le repo public)
 
 - [ ] **Régénérer les secrets Supabase** (mot de passe DB + service_role + secret key — ils ont circulé en clair)
