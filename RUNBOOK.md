@@ -1,4 +1,4 @@
-# GIGO — Runbook opérationnel (FR)
+ # GIGO — Runbook opérationnel (FR)
 
 > Le guide de survie pour lancer, dépanner et **démontrer** GIGO.
 > Le README.md (anglais) est la vitrine publique ; ce fichier est ton manuel de bord.
@@ -22,7 +22,7 @@ bun install
 | `NEXT_PUBLIC_SUPABASE_URL` | Dashboard Supabase → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | idem |
 | `SUPABASE_SERVICE_ROLE_KEY` | idem |
-| `DATABASE_URL` | Settings → Database (pooler **session**, port 5432, région eu-west-1) — ⚠ les caractères spéciaux du mot de passe doivent être encodés (`*` → `%2A`) |
+| `DATABASE_URL` | Actuellement en **connexion directe** `db.<ref>.supabase.co:5432` (le pooler s'était désenregistré après une pause). Les caractères spéciaux du mot de passe doivent être encodés (`*` → `%2A`) |
 | `OPENAI_API_KEY` | platform.openai.com |
 | `ANTHROPIC_API_KEY` | console.anthropic.com — **manquante aujourd'hui** : sans elle, le provider Claude renvoie une erreur AUTH (OpenAI fonctionne) |
 | `ENCRYPTION_KEY` | 16+ caractères — **l'app refuse de démarrer sans** |
@@ -92,6 +92,8 @@ curl -X POST http://localhost:3000/api/webhook/<ADAPTER_ID> \
 | `ENCRYPTION_KEY environment variable is required` | `.env` absent ou clé < 16 chars | Compléter `.env` |
 | Login : « Email not confirmed » | Confirmation email active par défaut | Supabase → Authentication → Sign In/Providers → Email → décocher « Confirm email » |
 | Playground : erreur AUTH avec Claude | `ANTHROPIC_API_KEY` absente | L'ajouter au `.env`, relancer `bun run dev` |
+| `RATE_LIMIT — OpenAI rate limit exceeded` dès le 1er appel | **Crédits OpenAI épuisés** (le 429 d'OpenAI couvre aussi insufficient_quota) | Recharger le compte sur platform.openai.com → Billing |
+| Données disparues juste après un « Restore » Supabase | La restauration écrase la base pendant plusieurs minutes | Attendre la fin du restore, puis relancer `bun run db:deploy` + `bun scripts/seed-demo.ts` (idempotent) |
 | `429 RATE_LIMITED` sur le playground | Garde-fou : 20 tests/min/utilisateur | Attendre 1 min (ou le dire au jury : « c'est une protection, elle marche ») |
 | `command not found: bun` | PATH du shell | `export PATH="$HOME/.bun/bin:$PATH"` ou nouveau terminal |
 | Le build casse en CI/Docker sans `.env` | Normal : des valeurs factices sont injectées (voir `ci.yml` / `Dockerfile`) | Rien à faire |
@@ -113,10 +115,10 @@ Le projet gratuit se met en veille après ~1 semaine sans activité. **Trois par
 - [ ] **Réveiller Supabase** (il est en pause en ce moment même) et décider : Pro ou ping hebdo
 - [ ] **Ajouter `ANTHROPIC_API_KEY`** au `.env` → la démo « 2 moteurs d'IA » ne marche pas sans
 - [ ] Créditer les comptes API (OpenAI + Anthropic) : ~5 € suffisent largement
-- [ ] Créer le **compte de démo** (email pro, mot de passe simple à taper devant un jury)
+- [x] Compte de démo créé par le seed : `demo@gigo.dev` / `GigoLyon2026!`
 - [ ] Désactiver « Confirm email » dans Supabase (évite un blocage en live)
-- [ ] Créer **3 adaptateurs préparés** (voir scénario ci-dessous) + les avoir testés
-- [ ] Générer **une vingtaine de logs** en amont (webhook + playground) pour que la page Logs soit vivante (stats, filtres, pagination)
+- [x] 3 adaptateurs lyonnais seedés (`bun scripts/seed-demo.ts`, idempotent) : Événements innovation Lyon, Leads startups → CRM, Vélo'v Grand Lyon
+- [x] 19 logs réalistes seedés sur 10 jours (succès, échecs à rejouer, tests playground)
 - [ ] **Tester `docker compose up` une fois** de bout en bout
 - [ ] Enregistrer une **vidéo de secours** (2-3 min, screen recording du scénario complet) — le plan B absolu
 - [ ] Optionnel mais fort : déployer une instance sur **Vercel** → une URL publique = plan B réseau + « c'est déjà en ligne »
