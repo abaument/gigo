@@ -174,15 +174,23 @@ Page Logs : le call apparaît (indicateur live), clique → drawer avec input/ou
 
 ## 4bis. Déployer la démo publique sur Vercel
 
-1. [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `abaument/gigo` (framework Next.js auto-détecté).
-2. Variables d'environnement à coller (Settings → Environment Variables) :
-   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (⚠ les valeurs **régénérées**)
-   - `DATABASE_URL` = **pooler** (IPv4, obligatoire sur Vercel) : `postgresql://postgres.<ref>:<MDP-ENCODÉ>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres`
-   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ENCRYPTION_KEY`
-   - `NEXT_PUBLIC_BASE_URL` = l'URL Vercel (ex. `https://gigo-demo.vercel.app`) — redéployer après l'avoir connue
-   - `MONTHLY_TOKEN_QUOTA` = `150000` (garde-fou : ~quelques euros max par utilisateur/mois)
-3. En parallèle, plafonner la dépense côté fournisseurs : OpenAI → Billing → *Monthly budget* ; Anthropic → *Spend limits*.
-4. Chaque `git push` sur main redéploie automatiquement. Supprimer le projet Vercel après la démo = le « site éphémère » disparaît.
+> **Tout est déjà préparé dans le repo** : `vercel.json` (fonctions en région `dub1`, Dublin — la même que la
+> base Supabase eu-west-1), `postinstall: prisma generate` dans package.json (obligatoire à cause du cache de
+> build Vercel), et `maxDuration = 60` déjà exporté sur les 2 routes lourdes (webhook + playground).
+> Les variables d'environnement sont **prêtes à coller** dans `~/Desktop/Gigo/VERCEL_ENV.txt` (hors repo).
+
+1. **Avant tout** : régénérer le mot de passe DB Supabase (voir §5 — il a été exposé), créer une
+   `ANTHROPIC_API_KEY`, recharger les crédits OpenAI. Compléter les 3 valeurs dans `VERCEL_ENV.txt`.
+2. [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `abaument/gigo` (framework Next.js
+   auto-détecté, bun détecté via `bun.lock`).
+3. Dans l'écran d'import, section *Environment Variables* : coller **tout le bloc** de `VERCEL_ENV.txt`
+   (Vercel parse le format `KEY=value` d'un coup). Rappels :
+   - `DATABASE_URL` = **pooler** (IPv4, obligatoire sur Vercel) : `aws-0-eu-west-1.pooler.supabase.com:5432`
+   - `MONTHLY_TOKEN_QUOTA=150000` (garde-fou : ~quelques euros max par utilisateur/mois)
+4. Deploy. Puis remplacer `NEXT_PUBLIC_BASE_URL` par l'URL réelle attribuée → **Redeploy**.
+5. En parallèle, plafonner la dépense côté fournisseurs : OpenAI → Billing → *Monthly budget* ; Anthropic → *Spend limits*.
+6. Vérifier : `/login` répond, login `demo@gigo.dev`, un test playground, le cURL webhook vers l'URL publique.
+7. Chaque `git push` sur main redéploie automatiquement. Supprimer le projet Vercel après la démo = le « site éphémère » disparaît.
 
 ## 5. Rappels sécurité (avant de rendre le repo public)
 
