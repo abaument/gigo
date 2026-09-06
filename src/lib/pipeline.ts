@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { transformJson, validateTransformedOutput, type TransformResult } from '@/lib/transformer';
 import { forwardToDestination, type ForwardResult } from '@/lib/forwarder';
 import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
+import { resolveApiKey } from '@/lib/api-keys';
 
 export interface PipelineArgs {
   adapter: Adapter;
@@ -75,9 +76,17 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
     };
   }
 
+  // BYOK: the adapter owner's stored key, falling back to the server env
+  // var. Resolution failures fall through to the provider's AUTH error.
+  const apiKey = await resolveApiKey(
+    adapter.userId,
+    adapter.modelProvider === 'anthropic' ? 'anthropic' : 'openai'
+  ).catch(() => null);
+
   const transform = await transformJson(inputJson, adapter.targetSchema, {
     provider: adapter.modelProvider,
     modelName: adapter.modelName ?? undefined,
+    apiKey: apiKey ?? undefined,
   });
 
   const warnings: string[] = [];

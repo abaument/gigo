@@ -29,8 +29,28 @@ model User {
 
   // Relations
   adapters Adapter[]
+  apiKeys  UserApiKey[]
 
   @@map("users")
+}
+
+/// Per-user LLM provider API key (bring your own key). The platform
+/// operator never has to configure provider keys: each user stores their
+/// own, encrypted with AES-256-GCM. Env vars remain a fallback for
+/// self-hosted single-operator installs.
+model UserApiKey {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  provider     String // "openai", "anthropic"
+  encryptedKey String   @map("encrypted_key")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("user_api_keys")
 }
 
 // =============================================================================

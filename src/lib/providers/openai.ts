@@ -12,17 +12,27 @@ import {
 } from './types';
 import { DEFAULT_MODELS } from './models';
 
-let client: OpenAI | null = null;
+// One client per distinct key: user keys (BYOK) and the env fallback coexist.
+const clients = new Map<string, OpenAI>();
 
-function getClient(): OpenAI {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new ProviderError('OPENAI_API_KEY is not configured', 'AUTH', false);
+function getClient(apiKey?: string): OpenAI {
+  const key = apiKey ?? process.env.OPENAI_API_KEY;
+  if (!key) {
+    throw new ProviderError(
+      'No OpenAI API key configured — add yours in Settings',
+      'AUTH',
+      false
+    );
   }
-  client ??= new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: SDK_MAX_RETRIES,
-  });
+  let client = clients.get(key);
+  if (!client) {
+    client = new OpenAI({
+      apiKey: key,
+      timeout: REQUEST_TIMEOUT_MS,
+      maxRetries: SDK_MAX_RETRIES,
+    });
+    clients.set(key, client);
+  }
   return client;
 }
 
@@ -35,7 +45,7 @@ export const openaiProvider: TransformProvider = {
 
     let response: OpenAI.Chat.Completions.ChatCompletion;
     try {
-      response = await getClient().chat.completions.create({
+      response = await getClient(opts?.apiKey).chat.completions.create({
         model,
         messages: [
           { role: 'system', content: systemPrompt },

@@ -32,7 +32,8 @@
     "signIn": "Connexion",
     "getStarted": "Commencer",
     "signOut": "Déconnexion",
-    "tagline": "Garbage In, Gold Out"
+    "tagline": "Garbage In, Gold Out",
+    "settings": "Paramètres"
   },
   "dashboard": {
     "title": "Adaptateurs",
@@ -242,5 +243,23 @@
     "description": "Voulez-vous vraiment supprimer <name></name> ? Tous les logs de transformation seront aussi supprimés. Cette action est irréversible.",
     "confirm": "Supprimer l'adaptateur",
     "deleting": "Suppression..."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Vos clés d'API IA, chiffrées et propres à votre compte",
+    "explainer": "GIGO utilise VOS clés d'API pour appeler les moteurs d'IA : vous gardez le contrôle total de votre consommation et de votre facturation. Les clés sont chiffrées (AES-256-GCM) et ne sont jamais réaffichées en clair.",
+    "getKeyAt": "Obtenir une clé sur {console}",
+    "statusConfigured": "Clé configurée",
+    "statusServerKey": "Clé du serveur utilisée",
+    "statusMissing": "Aucune clé",
+    "deleteKey": "Supprimer",
+    "replacePlaceholder": "Coller une nouvelle clé pour remplacer",
+    "saveKey": "Enregistrer",
+    "replaceKey": "Remplacer",
+    "keySaved": "Clé enregistrée",
+    "keySaveError": "Impossible d'enregistrer la clé",
+    "keyDeleted": "Clé supprimée",
+    "keyDeleteError": "Impossible de supprimer la clé",
+    "securityNote": "Sans clé pour un fournisseur, les adaptateurs qui l'utilisent renverront une erreur d'authentification. Si l'opérateur de la plateforme a configuré une clé serveur, elle sert de secours ; votre clé, si présente, est toujours prioritaire."
   }
 }

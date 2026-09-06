@@ -20,17 +20,27 @@ import {
 } from './types';
 import { DEFAULT_MODELS } from './models';
 
-let client: Anthropic | null = null;
+// One client per distinct key: user keys (BYOK) and the env fallback coexist.
+const clients = new Map<string, Anthropic>();
 
-function getClient(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new ProviderError('ANTHROPIC_API_KEY is not configured', 'AUTH', false);
+function getClient(apiKey?: string): Anthropic {
+  const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!key) {
+    throw new ProviderError(
+      'No Anthropic API key configured — add yours in Settings',
+      'AUTH',
+      false
+    );
   }
-  client ??= new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: SDK_MAX_RETRIES,
-  });
+  let client = clients.get(key);
+  if (!client) {
+    client = new Anthropic({
+      apiKey: key,
+      timeout: REQUEST_TIMEOUT_MS,
+      maxRetries: SDK_MAX_RETRIES,
+    });
+    clients.set(key, client);
+  }
   return client;
 }
 
@@ -43,7 +53,7 @@ export const anthropicProvider: TransformProvider = {
 
     let response: Anthropic.Message;
     try {
-      response = await getClient().messages.create({
+      response = await getClient(opts?.apiKey).messages.create({
         model,
         max_tokens: maxTokens,
         // No temperature: recent Claude models reject non-default sampling params.

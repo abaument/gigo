@@ -18,6 +18,12 @@ export interface ProviderResult {
 export interface TransformOptions {
   modelName?: string;
   maxTokens?: number;
+  /**
+   * Per-user API key (bring your own key). When absent, providers fall
+   * back to their env var; when neither exists they throw a typed AUTH
+   * error telling the user to add a key in Settings.
+   */
+  apiKey?: string;
 }
 
 export interface TransformProvider {

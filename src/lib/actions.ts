@@ -15,6 +15,7 @@ import { db } from './db';
 import { createClient } from './supabase/server';
 import { encrypt, decrypt, maskSensitive } from './encryption';
 import { generateSchemaFromDocs, generateSchemaFromUrl } from './schema-generator';
+import { envApiKey, KEYABLE_PROVIDERS, resolveApiKey } from './api-keys';
 import { assertSafeUrl, SsrfError } from './ssrf-guard';
 import { generateWebhookSecret } from './security';
 import { runTransformation } from './pipeline';
@@ -720,11 +721,103 @@ export async function replayTransformation(
 // =============================================================================
 
 export async function generateSchema(documentationText: string) {
-  await requireAuth();
-  return await generateSchemaFromDocs(documentationText);
+  const user = await requireAuth();
+  const apiKey = await resolveApiKey(user.id, 'openai');
+  return await generateSchemaFromDocs(documentationText, apiKey ?? undefined);
 }
 
 export async function generateSchemaFromDocUrl(url: string) {
-  await requireAuth();
-  return await generateSchemaFromUrl(url);
+  const user = await requireAuth();
+  const apiKey = await resolveApiKey(user.id, 'openai');
+  return await generateSchemaFromUrl(url, apiKey ?? undefined);
+}
+
+// =============================================================================
+// USER API KEYS (bring your own key)
+// =============================================================================
+
+export interface UserApiKeyInfo {
+  provider: string;
+  maskedKey: string;
+  updatedAt: Date;
+}
+
+/**
+ * The authenticated user's stored LLM keys, masked for display, plus
+ * whether a server-level fallback key exists per provider.
+ */
+export async function getUserApiKeys(): Promise<{
+  keys: UserApiKeyInfo[];
+  serverFallback: Record<string, boolean>;
+}> {
+  const user = await requireAuth();
+
+  const rows = await db.userApiKey.findMany({
+    where: { userId: user.id },
+    orderBy: { provider: 'asc' },
+  });
+
+  const keys = rows.map((row) => {
+    let masked = '••••••••';
+    try {
+      masked = maskSensitive(decrypt(row.encryptedKey));
+    } catch {
+      // undecryptable (e.g. rotated ENCRYPTION_KEY) — still listed so it can be replaced
+    }
+    return { provider: row.provider, maskedKey: masked, updatedAt: row.updatedAt };
+  });
+
+  return {
+    keys,
+    serverFallback: Object.fromEntries(
+      KEYABLE_PROVIDERS.map((p) => [p, envApiKey(p) !== null])
+    ),
+  };
+}
+
+/**
+ * Store (or replace) the authenticated user's API key for a provider.
+ * The key is encrypted at rest and only ever shown masked afterwards.
+ */
+export async function saveUserApiKey(provider: string, apiKey: string) {
+  try {
+    const user = await requireAuth();
+
+    if (!(KEYABLE_PROVIDERS as string[]).includes(provider)) {
+      return { success: false as const, error: 'Unknown provider' };
+    }
+    const trimmed = apiKey.trim();
+    if (trimmed.length < 20 || trimmed.length > 400 || /\s/.test(trimmed)) {
+      return { success: false as const, error: 'This does not look like a valid API key' };
+    }
+
+    await db.userApiKey.upsert({
+      where: { userId_provider: { userId: user.id, provider } },
+      create: { userId: user.id, provider, encryptedKey: encrypt(trimmed) },
+      update: { encryptedKey: encrypt(trimmed) },
+    });
+
+    revalidatePath('/settings');
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save API key';
+    return { success: false as const, error: message };
+  }
+}
+
+/** Remove the authenticated user's stored key for a provider. */
+export async function deleteUserApiKey(provider: string) {
+  try {
+    const user = await requireAuth();
+
+    await db.userApiKey.deleteMany({
+      where: { userId: user.id, provider },
+    });
+
+    revalidatePath('/settings');
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete API key';
+    return { success: false as const, error: message };
+  }
 }

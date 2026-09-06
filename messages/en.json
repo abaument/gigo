@@ -32,7 +32,8 @@
     "signIn": "Sign in",
     "getStarted": "Get started",
     "signOut": "Sign out",
-    "tagline": "Garbage In, Gold Out"
+    "tagline": "Garbage In, Gold Out",
+    "settings": "Settings"
   },
   "dashboard": {
     "title": "Adapters",
@@ -242,5 +243,23 @@
     "description": "Are you sure you want to delete <name></name>? This will also delete all transformation logs. This action cannot be undone.",
     "confirm": "Delete Adapter",
     "deleting": "Deleting..."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Your AI API keys, encrypted and scoped to your account",
+    "explainer": "GIGO calls AI engines with YOUR API keys: you keep full control over your usage and billing. Keys are encrypted at rest (AES-256-GCM) and are never shown in clear text again.",
+    "getKeyAt": "Get a key at {console}",
+    "statusConfigured": "Key configured",
+    "statusServerKey": "Using server key",
+    "statusMissing": "No key",
+    "deleteKey": "Delete",
+    "replacePlaceholder": "Paste a new key to replace",
+    "saveKey": "Save",
+    "replaceKey": "Replace",
+    "keySaved": "Key saved",
+    "keySaveError": "Could not save the key",
+    "keyDeleted": "Key deleted",
+    "keyDeleteError": "Could not delete the key",
+    "securityNote": "Without a key for a provider, adapters using it will return an authentication error. If the platform operator configured a server key it acts as a fallback; your own key always takes precedence."
   }
 }

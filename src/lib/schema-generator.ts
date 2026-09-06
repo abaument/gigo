@@ -9,16 +9,21 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { fetchWithGuards, SsrfError } from '@/lib/ssrf-guard';
 
-// Lazy client: the SDK throws at construction when the key is missing,
-// which must not happen at module load (build/CI run without any key).
-let openaiClient: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  openaiClient ??= new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    timeout: 30_000,
-    maxRetries: 2,
-  });
-  return openaiClient;
+// Lazy clients, one per key: the SDK throws at construction when the key
+// is missing, which must not happen at module load (build/CI run without
+// any key). BYOK: callers pass the user's key; env var is the fallback.
+const openaiClients = new Map<string, OpenAI>();
+function getOpenAI(apiKey: string): OpenAI {
+  let client = openaiClients.get(apiKey);
+  if (!client) {
+    client = new OpenAI({
+      apiKey,
+      timeout: 30_000,
+      maxRetries: 2,
+    });
+    openaiClients.set(apiKey, client);
+  }
+  return client;
 }
 
 const generatedSchemaResponse = z.object({
@@ -65,13 +70,15 @@ export interface SchemaGenerationResult {
  * '{"order_id": "123", "amount": 99.99}'
  */
 export async function generateSchemaFromDocs(
-  documentationText: string
+  documentationText: string,
+  apiKey?: string
 ): Promise<SchemaGenerationResult> {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const key = apiKey ?? process.env.OPENAI_API_KEY;
+    if (!key) {
       return {
         success: false,
-        error: 'OpenAI API key not configured',
+        error: 'No OpenAI API key configured — add yours in Settings',
       };
     }
 
@@ -117,7 +124,7 @@ EXAMPLE OUTPUT:
   }
 }`;
 
-    const response = await getOpenAI().chat.completions.create({
+    const response = await getOpenAI(key).chat.completions.create({
       model: 'gpt-4o-2024-08-06',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -177,7 +184,8 @@ EXAMPLE OUTPUT:
  *     Object containing the generated schema or error message.
  */
 export async function generateSchemaFromUrl(
-  url: string
+  url: string,
+  apiKey?: string
 ): Promise<SchemaGenerationResult> {
   try {
     // Fetch with SSRF protection: private/metadata IPs blocked (including
@@ -225,7 +233,7 @@ export async function generateSchemaFromUrl(
     }
 
     // Generate schema from the extracted text
-    return await generateSchemaFromDocs(text);
+    return await generateSchemaFromDocs(text, apiKey);
   } catch (error) {
     if (error instanceof SsrfError) {
       return { success: false, error: error.message };

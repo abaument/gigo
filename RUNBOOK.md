@@ -23,8 +23,8 @@ bun install
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | idem |
 | `SUPABASE_SERVICE_ROLE_KEY` | idem |
 | `DATABASE_URL` | Actuellement en **connexion directe** `db.<ref>.supabase.co:5432` (le pooler s'était désenregistré après une pause). Les caractères spéciaux du mot de passe doivent être encodés (`*` → `%2A`) |
-| `OPENAI_API_KEY` | platform.openai.com |
-| `ANTHROPIC_API_KEY` | console.anthropic.com — **manquante aujourd'hui** : sans elle, le provider Claude renvoie une erreur AUTH (OpenAI fonctionne) |
+| `OPENAI_API_KEY` | **Optionnelle depuis le BYOK** : chaque utilisateur saisit SA clé dans `/settings` (chiffrée en base, prioritaire). L'env var ne sert que de clé de secours serveur |
+| `ANTHROPIC_API_KEY` | Idem — optionnelle, secours serveur uniquement |
 | `ENCRYPTION_KEY` | 16+ caractères — **l'app refuse de démarrer sans** |
 
 ---
@@ -179,8 +179,9 @@ Page Logs : le call apparaît (indicateur live), clique → drawer avec input/ou
 > build Vercel), et `maxDuration = 60` déjà exporté sur les 2 routes lourdes (webhook + playground).
 > Les variables d'environnement sont **prêtes à coller** dans `~/Desktop/Gigo/VERCEL_ENV.txt` (hors repo).
 
-1. **Avant tout** : régénérer le mot de passe DB Supabase (voir §5 — il a été exposé), créer une
-   `ANTHROPIC_API_KEY`, recharger les crédits OpenAI. Compléter les 3 valeurs dans `VERCEL_ENV.txt`.
+1. **Avant tout** : régénérer le mot de passe DB Supabase (voir §5 — il a été exposé). Les clés
+   IA ne sont **plus nécessaires côté serveur** (BYOK) : chaque utilisateur — y compris le compte
+   démo — saisit les siennes dans `/settings` après connexion.
 2. [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `abaument/gigo` (framework Next.js
    auto-détecté, bun détecté via `bun.lock`).
 3. Dans l'écran d'import, section *Environment Variables* : coller **tout le bloc** de `VERCEL_ENV.txt`

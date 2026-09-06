@@ -32,7 +32,7 @@ Every service speaks its own dialect: `firstName` here, `first_name` there, amou
 
 - [Bun](https://bun.sh) 1.x
 - A [Supabase](https://supabase.com) project (auth + Postgres)
-- An [OpenAI](https://platform.openai.com) and/or [Anthropic](https://console.anthropic.com) API key
+- An [OpenAI](https://platform.openai.com) and/or [Anthropic](https://console.anthropic.com) API key — **bring your own key**: each user stores their own keys in Settings (encrypted at rest). Optionally, the operator can set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` env vars as a server-wide fallback
 
 ### Setup
 

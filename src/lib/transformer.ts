@@ -86,6 +86,8 @@ export interface TransformResult {
 export interface TransformJsonOptions {
   provider?: string;
   modelName?: string;
+  /** Per-user API key (BYOK); providers fall back to env vars when absent. */
+  apiKey?: string;
 }
 
 function buildSystemPrompt(targetSchemaExample: string): string {
@@ -133,6 +135,7 @@ export async function transformJson(
 
     const result = await provider.transform(inputJson, jsonSchema, systemPrompt, {
       modelName: opts?.modelName,
+      apiKey: opts?.apiKey,
     });
 
     return {
