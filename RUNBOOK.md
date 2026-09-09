@@ -193,6 +193,29 @@ Page Logs : le call apparaît (indicateur live), clique → drawer avec input/ou
 6. Vérifier : `/login` répond, login `demo@gigo.dev`, un test playground, le cURL webhook vers l'URL publique.
 7. Chaque `git push` sur main redéploie automatiquement. Supprimer le projet Vercel après la démo = le « site éphémère » disparaît.
 
+## 4ter. Entrée par email (sans nom de domaine)
+
+Chaque adaptateur peut recevoir des données **par email** : on envoie/transfère un mail à son adresse
+dédiée, le corps + les pièces jointes JSON/CSV passent dans le pipeline comme un appel webhook.
+Pas besoin de domaine : Postmark fournit une adresse de réception prête à l'emploi.
+
+1. Créer un compte [postmarkapp.com](https://postmarkapp.com) (offre dev gratuite : 100 emails/mois) → un « Server ».
+2. Onglet **Default Inbound Stream** → **Settings** :
+   - Noter l'**Inbound email address** (ex. `a1b2c3d4e5@inbound.postmarkapp.com`)
+   - **Webhook URL** : `https://<url-app>/api/email/inbound?secret=<UN-SECRET-LONG>`
+3. Ajouter aux variables d'environnement (Vercel + `.env` local) :
+   - `EMAIL_INBOUND_SECRET` = le même secret que dans l'URL du webhook
+   - `NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS` = l'adresse inbound Postmark
+   → Redeploy. La carte « Adresse email entrante » apparaît sur chaque page d'adaptateur,
+   avec l'adresse complète : `a1b2c3d4e5+<id-adaptateur>@inbound.postmarkapp.com`.
+4. Tester : envoyer un mail (texte libre, ou avec un CSV en pièce jointe) à l'adresse d'un
+   adaptateur → le log apparaît dans la page Logs (source `email`), et le résultat est forwardé
+   si une destination est configurée.
+
+Notes : mails routés par la partie `+<uuid>` de l'adresse (non devinable) ; endpoint protégé par
+secret ; pièces jointes JSON/CSV parsées (CSV tronqué à 200 lignes), PDF/images signalés non
+supportés ; 1 Mo max par pièce jointe, 5 Mo par mail ; le rate limit de l'adaptateur s'applique.
+
 ## 5. Rappels sécurité (avant de rendre le repo public)
 
 - [ ] **Régénérer les secrets Supabase** (mot de passe DB + service_role + secret key — ils ont circulé en clair)

@@ -15,8 +15,10 @@ import { formatDuration, formatNumber, formatTimestamp } from '@/lib/utils/forma
 import { StatCard } from '@/components/ui/StatCard';
 import { JsonViewer } from '@/components/JsonViewer';
 import { WebhookEndpointCard } from '@/components/adapter-detail/WebhookEndpointCard';
+import { EmailEndpointCard } from '@/components/adapter-detail/EmailEndpointCard';
 import { AdapterQuickActions } from '@/components/adapter-detail/AdapterQuickActions';
 import { TransformPlayground } from '@/components/playground/TransformPlayground';
+import { buildInboundAddress } from '@/lib/email-inbound';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +33,11 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
   ]);
 
   if (!adapter) notFound();
+
+  const inboundEmailAddress = buildInboundAddress(
+    process.env.NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS,
+    adapter.id
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
@@ -65,6 +72,13 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
           sampleBody={'{"example": "payload"}'}
         />
       </div>
+
+      {/* Inbound email address (only when the operator configured an inbox) */}
+      {inboundEmailAddress && (
+        <div className="animate-slide-up">
+          <EmailEndpointCard address={inboundEmailAddress} />
+        </div>
+      )}
 
       {/* Stats */}
       {stats && (

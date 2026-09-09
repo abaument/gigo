@@ -139,7 +139,9 @@
     "configNoDestination": "Aucun forwarding configuré",
     "dangerZone": "Zone dangereuse",
     "copyCurl": "Copier en cURL",
-    "notFound": "Adaptateur introuvable"
+    "notFound": "Adaptateur introuvable",
+    "emailTitle": "Adresse email entrante",
+    "emailHelp": "Envoyez ou transférez un email à cette adresse : son contenu (et ses pièces jointes JSON/CSV) sera transformé et livré comme un appel webhook."
   },
   "playground": {
     "title": "Playground",

@@ -139,7 +139,9 @@
     "configNoDestination": "No forwarding configured",
     "dangerZone": "Danger zone",
     "copyCurl": "Copy as cURL",
-    "notFound": "Adapter not found"
+    "notFound": "Adapter not found",
+    "emailTitle": "Inbound email address",
+    "emailHelp": "Send or forward an email to this address: its content (and JSON/CSV attachments) gets transformed and delivered like a webhook call."
   },
   "playground": {
     "title": "Playground",
