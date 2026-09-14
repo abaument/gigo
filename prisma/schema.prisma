@@ -87,17 +87,44 @@ model Adapter {
   rateLimitPerMin Int     @default(60) @map("rate_limit_per_min")
 
   // Settings
-  isActive  Boolean @default(true) @map("is_active")
+  isActive        Boolean @default(true) @map("is_active")
+  learningEnabled Boolean @default(true) @map("learning_enabled")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs TransformationLog[]
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs      TransformationLog[]
+  learnings AdapterLearning[]
 
   @@index([userId])
   @@index([createdAt])
   @@map("adapters")
+}
+
+/// Learning loop: curated knowledge captured from past runs and injected
+/// into the system prompt of subsequent calls (few-shot). Two kinds:
+/// - "example": a validated input→output pair (successful replay of a
+///   previously failed run, or a log the user saved manually)
+/// - "pitfall": a constraint learned from a bad run (e.g. keys the model
+///   hallucinated outside the target schema)
+model AdapterLearning {
+  id          String   @id @default(uuid()) @db.Uuid
+  adapterId   String   @map("adapter_id") @db.Uuid
+  kind        String // "example" | "pitfall"
+  inputJson   String?  @map("input_json")
+  outputJson  String?  @map("output_json")
+  note        String?
+  source      String   @default("auto") // "auto" | "manual" | "replay"
+  contentHash String   @map("content_hash") // dedupe key
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  adapter Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+
+  @@unique([adapterId, contentHash])
+  @@index([adapterId, kind])
+  @@map("adapter_learnings")
 }
 
 // =============================================================================

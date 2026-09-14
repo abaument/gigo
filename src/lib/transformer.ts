@@ -17,6 +17,7 @@ import {
   type ProviderName,
   type TransformUsage,
 } from '@/lib/providers/types';
+import { buildLearningsPromptSection, type PromptLearnings } from '@/lib/learnings';
 
 /**
  * Generates a strict JSON Schema from an example JSON object.
@@ -88,9 +89,15 @@ export interface TransformJsonOptions {
   modelName?: string;
   /** Per-user API key (BYOK); providers fall back to env vars when absent. */
   apiKey?: string;
+  /** Adapter's learning loop: validated examples + learned constraints. */
+  learnings?: PromptLearnings;
 }
 
-function buildSystemPrompt(targetSchemaExample: string): string {
+export function buildSystemPrompt(
+  targetSchemaExample: string,
+  learnings?: PromptLearnings
+): string {
+  const learningsSection = learnings ? `\n\n${buildLearningsPromptSection(learnings)}` : '';
   return `You are a rigid API middleware that transforms JSON payloads.
 
 Your task:
@@ -112,7 +119,7 @@ CRITICAL RULES:
 - Preserve semantic meaning when mapping fields
 
 TARGET SCHEMA EXAMPLE (your output must match this exact structure):
-${targetSchemaExample}`;
+${targetSchemaExample}${learningsSection}`;
 }
 
 /**
@@ -131,7 +138,7 @@ export async function transformJson(
   try {
     const targetExample = JSON.parse(targetSchemaExample);
     const jsonSchema = generateJsonSchemaFromExample(targetExample);
-    const systemPrompt = buildSystemPrompt(targetSchemaExample);
+    const systemPrompt = buildSystemPrompt(targetSchemaExample, opts?.learnings);
 
     const result = await provider.transform(inputJson, jsonSchema, systemPrompt, {
       modelName: opts?.modelName,

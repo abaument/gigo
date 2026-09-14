@@ -9,7 +9,8 @@
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { TransformationLog } from '@prisma/client';
-import { getLogById, type LogListItem } from '@/lib/actions';
+import { getLogById, saveLogAsExample, type LogListItem } from '@/lib/actions';
+import { useToast } from '@/components/ui/ToastProvider';
 import { formatDuration, formatTimestamp } from '@/lib/utils/format';
 import { JsonViewer } from '@/components/JsonViewer';
 import { CopyButton } from '@/components/CopyButton';
@@ -27,8 +28,42 @@ interface LogDetailDrawerProps {
 export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerProps) {
   const t = useTranslations('logs');
   const locale = useLocale();
+  const { toast } = useToast();
   const [tab, setTab] = useState<DrawerTab>('overview');
   const [fullLog, setFullLog] = useState<TransformationLog | null>(null);
+  const [savingExample, setSavingExample] = useState(false);
+  const [exampleSaved, setExampleSaved] = useState(false);
+
+  const handleSaveExample = async () => {
+    setSavingExample(true);
+    try {
+      const result = await saveLogAsExample(log.id);
+      if (result.success) {
+        setExampleSaved(true);
+        toast({ variant: 'success', title: t('exampleSaved') });
+      } else {
+        const code = 'code' in result ? result.code : undefined;
+        toast({
+          variant: 'error',
+          title: t('exampleSaveError'),
+          description:
+            code === 'cap'
+              ? t('exampleCap')
+              : code === 'duplicate'
+                ? t('exampleDuplicate')
+                : code === 'too_large'
+                  ? t('exampleTooLarge')
+                  : code === 'not_clean'
+                    ? t('exampleNotClean')
+                    : result.error,
+        });
+      }
+    } catch {
+      toast({ variant: 'error', title: t('exampleSaveError') });
+    } finally {
+      setSavingExample(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +113,22 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
               <CopyButton text={log.id} className="p-1.5" />
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {log.success && !log.error && !exampleSaved && (
+                <button
+                  type="button"
+                  onClick={handleSaveExample}
+                  disabled={savingExample}
+                  className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-50"
+                  title={t('saveAsExampleHelp')}
+                >
+                  {savingExample ? '…' : t('saveAsExample')}
+                </button>
+              )}
+              {log.success && exampleSaved && (
+                <span className="badge bg-sage/15 text-sage border border-sage/30 text-[10px]">
+                  ✓ {t('exampleSavedBadge')}
+                </span>
+              )}
               {canReplay && <ReplayLogButton logId={log.id} onReplayed={onReplayed} />}
               <button
                 type="button"

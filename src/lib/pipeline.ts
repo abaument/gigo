@@ -11,6 +11,7 @@ import { transformJson, validateTransformedOutput, type TransformResult } from '
 import { forwardToDestination, type ForwardResult } from '@/lib/forwarder';
 import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
 import { resolveApiKey } from '@/lib/api-keys';
+import { captureLearnings, getPromptLearnings } from '@/lib/learnings';
 
 export interface PipelineArgs {
   adapter: Adapter;
@@ -19,6 +20,8 @@ export interface PipelineArgs {
   forward: boolean;
   isTest: boolean;
   replayOfId?: string | null;
+  /** set by the replay action: did the ORIGINAL run's transform fail? */
+  replayOriginalFailed?: boolean;
   sourceIp?: string;
   userAgent?: string;
 }
@@ -76,20 +79,27 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
     };
   }
 
-  // BYOK: the adapter owner's stored key, falling back to the server env
-  // var. Resolution failures fall through to the provider's AUTH error.
-  const apiKey = await resolveApiKey(
-    adapter.userId,
-    adapter.modelProvider === 'anthropic' ? 'anthropic' : 'openai'
-  ).catch(() => null);
+  // BYOK key + the adapter's learned knowledge, fetched concurrently.
+  // Both are best-effort: failures fall through to defaults.
+  const [apiKey, learnings] = await Promise.all([
+    resolveApiKey(
+      adapter.userId,
+      adapter.modelProvider === 'anthropic' ? 'anthropic' : 'openai'
+    ).catch(() => null),
+    adapter.learningEnabled
+      ? getPromptLearnings(adapter.id).catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   const transform = await transformJson(inputJson, adapter.targetSchema, {
     provider: adapter.modelProvider,
     modelName: adapter.modelName ?? undefined,
     apiKey: apiKey ?? undefined,
+    learnings: learnings ?? undefined,
   });
 
   const warnings: string[] = [];
+  const extraKeys: string[] = [];
   let forwarding: ForwardResult | null = null;
 
   if (transform.success) {
@@ -97,6 +107,7 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
       const targetExample = JSON.parse(adapter.targetSchema);
       const validation = validateTransformedOutput(transform.data, targetExample);
       if (!validation.isValid) {
+        extraKeys.push(...validation.extraKeys);
         warnings.push(`Extra keys in output: ${validation.extraKeys.join(', ')}`);
       }
     } catch {
@@ -163,6 +174,21 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
     forwardings: forwarding ? 1 : 0,
     tokens: (transform.usage?.inputTokens ?? 0) + (transform.usage?.outputTokens ?? 0),
   }).catch((error) => console.error('Failed to record usage:', error));
+
+  // Learning loop: hallucinated keys become pitfall constraints; a
+  // successful replay of a past TRANSFORM failure becomes a reference
+  // example. Awaited (a floating promise would be dropped when the
+  // serverless instance freezes) but internally try/caught — it can
+  // never fail the request.
+  await captureLearnings({
+    adapter,
+    inputJson,
+    transform,
+    extraKeys,
+    replayOfId: args.replayOfId,
+    replayOriginalFailed: args.replayOriginalFailed,
+    isTest: args.isTest,
+  });
 
   return {
     ok: transform.success,

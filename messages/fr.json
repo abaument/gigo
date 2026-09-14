@@ -203,7 +203,16 @@
     "replaySuccess": "Rejeu réussi",
     "replayFailed": "Échec du rejeu",
     "tokens": "Tokens",
-    "provider": "Fournisseur"
+    "provider": "Fournisseur",
+    "saveAsExample": "→ Exemple",
+    "saveAsExampleHelp": "Enregistrer cette transformation réussie comme exemple de référence pour les prochains appels",
+    "exampleSaved": "Enregistré comme exemple de référence",
+    "exampleSavedBadge": "Exemple",
+    "exampleSaveError": "Impossible d'enregistrer l'exemple",
+    "exampleCap": "Limite d'exemples atteinte pour cet adaptateur — supprimez-en un d'abord",
+    "exampleDuplicate": "Cette entrée est déjà apprise",
+    "exampleTooLarge": "Payload trop volumineux pour servir d'exemple",
+    "exampleNotClean": "Cette transformation contient des avertissements (clés hors schéma) — elle ne peut pas servir d'exemple"
   },
   "toasts": {
     "adapterCreated": "Adaptateur créé",
@@ -289,5 +298,22 @@
     "tip2": "Activez toujours le secret webhook avant d'exposer une URL sur Internet — il se génère en un clic sur la page de l'adaptateur.",
     "tip3": "Un doute sur un mapping ? Le playground est gratuit en frustration : testez-y vos cas limites avant de brancher la source réelle.",
     "cta": "Créer mon premier adaptateur"
+  },
+  "learnings": {
+    "title": "Apprentissages",
+    "help": "L'adaptateur apprend de ses exécutions : les corrections validées deviennent des exemples de référence, les erreurs détectées deviennent des interdits — injectés dans les prochaines transformations.",
+    "loopLabel": "Apprentissage actif",
+    "loopEnabled": "Apprentissage activé",
+    "loopDisabled": "Apprentissage désactivé",
+    "kindExample": "EXEMPLE",
+    "kindPitfall": "INTERDIT",
+    "source_auto": "capturé automatiquement",
+    "source_manual": "ajouté manuellement",
+    "source_replay": "appris d'un rejeu corrigé",
+    "empty": "Rien d'appris pour l'instant. Rejouez un échec corrigé, ou promouvez un log réussi en exemple depuis le journal — l'adaptateur s'en souviendra.",
+    "pause": "Suspendre",
+    "resume": "Réactiver",
+    "delete": "Supprimer",
+    "deleted": "Apprentissage supprimé"
   }
 }

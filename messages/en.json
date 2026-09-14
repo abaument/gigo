@@ -203,7 +203,16 @@
     "replaySuccess": "Replay succeeded",
     "replayFailed": "Replay failed",
     "tokens": "Tokens",
-    "provider": "Provider"
+    "provider": "Provider",
+    "saveAsExample": "→ Example",
+    "saveAsExampleHelp": "Save this successful transformation as a reference example for future calls",
+    "exampleSaved": "Saved as a reference example",
+    "exampleSavedBadge": "Example",
+    "exampleSaveError": "Could not save the example",
+    "exampleCap": "Example limit reached for this adapter — delete one first",
+    "exampleDuplicate": "This input is already learned",
+    "exampleTooLarge": "Payload too large to be an example",
+    "exampleNotClean": "This transformation has warnings (keys outside the schema) — it cannot become an example"
   },
   "toasts": {
     "adapterCreated": "Adapter created",
@@ -289,5 +298,22 @@
     "tip2": "Always enable the webhook secret before exposing a URL to the internet — it's generated in one click on the adapter page.",
     "tip3": "Unsure about a mapping? The playground is frustration-free: test your edge cases there before wiring the real source.",
     "cta": "Create my first adapter"
+  },
+  "learnings": {
+    "title": "Learnings",
+    "help": "The adapter learns from its runs: validated fixes become reference examples, detected mistakes become constraints — injected into future transformations.",
+    "loopLabel": "Learning active",
+    "loopEnabled": "Learning enabled",
+    "loopDisabled": "Learning disabled",
+    "kindExample": "EXAMPLE",
+    "kindPitfall": "CONSTRAINT",
+    "source_auto": "captured automatically",
+    "source_manual": "added manually",
+    "source_replay": "learned from a fixed replay",
+    "empty": "Nothing learned yet. Replay a fixed failure, or promote a successful log to an example from the activity log — the adapter will remember.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "deleted": "Learning deleted"
   }
 }

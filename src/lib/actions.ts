@@ -16,6 +16,7 @@ import { createClient } from './supabase/server';
 import { encrypt, decrypt, maskSensitive } from './encryption';
 import { generateSchemaFromDocs, generateSchemaFromUrl } from './schema-generator';
 import { envApiKey, KEYABLE_PROVIDERS, resolveApiKey } from './api-keys';
+import { disableLearningsOnSchemaChange, saveExample } from './learnings';
 import { assertSafeUrl, SsrfError } from './ssrf-guard';
 import { generateWebhookSecret } from './security';
 import { runTransformation } from './pipeline';
@@ -308,6 +309,15 @@ export async function updateAdapter(id: string, input: UpdateAdapterInput) {
       where: { id },
       data: updateData,
     });
+
+    // A different target schema invalidates what was learned against the
+    // old one — pause all learnings (reviewable, not deleted).
+    if (
+      typeof updateData.targetSchema === 'string' &&
+      updateData.targetSchema !== existing.targetSchema
+    ) {
+      await disableLearningsOnSchemaChange(id);
+    }
 
     revalidatePath('/');
     revalidatePath(`/adapters/${id}`);
@@ -692,6 +702,7 @@ export async function replayTransformation(
       forward: opts?.forward ?? false,
       isTest: false,
       replayOfId: log.id,
+      replayOriginalFailed: !log.success,
       sourceIp: 'replay',
       userAgent: 'GIGO Replay',
     });
@@ -731,6 +742,118 @@ export async function generateSchemaFromDocUrl(url: string) {
   const user = await requireAuth();
   const apiKey = await resolveApiKey(user.id, 'openai');
   return await generateSchemaFromUrl(url, apiKey ?? undefined);
+}
+
+// =============================================================================
+// LEARNING LOOP
+// =============================================================================
+
+/** The adapter's stored learnings, owner-scoped, newest first. */
+export async function getAdapterLearnings(adapterId: string) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const owned = await db.adapter.findFirst({
+    where: { id: adapterId, userId: user.id },
+    select: { id: true },
+  });
+  if (!owned) return [];
+
+  return db.adapterLearning.findMany({
+    where: { adapterId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+/** Enable/disable the learning loop for an adapter. */
+export async function setAdapterLearningEnabled(adapterId: string, enabled: boolean) {
+  try {
+    const user = await requireAuth();
+
+    const { count } = await db.adapter.updateMany({
+      where: { id: adapterId, userId: user.id },
+      data: { learningEnabled: enabled },
+    });
+    if (count === 0) return { success: false as const, error: 'Adapter not found' };
+
+    revalidatePath(`/adapters/${adapterId}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update learning';
+    return { success: false as const, error: message };
+  }
+}
+
+/** Toggle a single learning on/off (kept but excluded from prompts). */
+export async function setLearningEnabled(learningId: string, enabled: boolean) {
+  try {
+    const user = await requireAuth();
+
+    const { count } = await db.adapterLearning.updateMany({
+      where: { id: learningId, adapter: { userId: user.id } },
+      data: { enabled },
+    });
+    if (count === 0) return { success: false as const, error: 'Learning not found' };
+
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update learning';
+    return { success: false as const, error: message };
+  }
+}
+
+/** Delete a learning. */
+export async function deleteLearning(learningId: string) {
+  try {
+    const user = await requireAuth();
+
+    const { count } = await db.adapterLearning.deleteMany({
+      where: { id: learningId, adapter: { userId: user.id } },
+    });
+    if (count === 0) return { success: false as const, error: 'Learning not found' };
+
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete learning';
+    return { success: false as const, error: message };
+  }
+}
+
+/**
+ * Promote a successful log to a reference example (manual curation from
+ * the log drawer).
+ */
+export async function saveLogAsExample(logId: string) {
+  try {
+    const user = await requireAuth();
+
+    const log = await db.transformationLog.findFirst({
+      where: { id: logId, adapter: { userId: user.id } },
+      select: { adapterId: true, success: true, error: true, inputJson: true, outputJson: true },
+    });
+    if (!log) return { success: false as const, error: 'Log not found' };
+    // `error` is non-null on a successful log only for validation warnings
+    // (hallucinated keys): that output violates the schema and must not
+    // be taught as a CORRECT example.
+    if (!log.success || !log.outputJson || log.error) {
+      return {
+        success: false as const,
+        error: 'Only clean successful transformations (no warnings) can become examples',
+        code: 'not_clean' as const,
+      };
+    }
+
+    const result = await saveExample(log.adapterId, log.inputJson, log.outputJson, 'manual');
+    if (!result.saved) {
+      return { success: false as const, error: result.reason ?? 'error', code: result.reason };
+    }
+
+    revalidatePath(`/adapters/${log.adapterId}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save example';
+    return { success: false as const, error: message };
+  }
 }
 
 // =============================================================================

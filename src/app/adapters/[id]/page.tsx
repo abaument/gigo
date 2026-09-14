@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
   getAdapterById,
+  getAdapterLearnings,
   getAdapterLogs,
   getAdapterStats,
 } from '@/lib/actions';
@@ -17,16 +18,18 @@ import { JsonViewer } from '@/components/JsonViewer';
 import { WebhookEndpointCard } from '@/components/adapter-detail/WebhookEndpointCard';
 import { EmailEndpointCard } from '@/components/adapter-detail/EmailEndpointCard';
 import { AdapterQuickActions } from '@/components/adapter-detail/AdapterQuickActions';
+import { LearningsCard } from '@/components/adapter-detail/LearningsCard';
 import { TransformPlayground } from '@/components/playground/TransformPlayground';
 import { buildInboundAddress } from '@/lib/email-inbound';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdapterDetailPage({ params }: { params: { id: string } }) {
-  const [adapter, stats, recentLogs, t, tCommon, locale] = await Promise.all([
+  const [adapter, stats, recentLogs, learnings, t, tCommon, locale] = await Promise.all([
     getAdapterById(params.id),
     getAdapterStats(params.id),
     getAdapterLogs(params.id, { take: 5 }),
+    getAdapterLearnings(params.id),
     getTranslations('adapterDetail'),
     getTranslations('common'),
     getLocale(),
@@ -103,6 +106,23 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
           adapterId={adapter.id}
           hasDestination={Boolean(adapter.destinationUrl)}
           webhookSecret={adapter.webhookSecret}
+        />
+      </div>
+
+      {/* Learning loop */}
+      <div className="animate-slide-up">
+        <LearningsCard
+          adapterId={adapter.id}
+          learningEnabled={adapter.learningEnabled}
+          learnings={learnings.map((l) => ({
+            id: l.id,
+            kind: l.kind,
+            inputJson: l.inputJson,
+            note: l.note,
+            source: l.source,
+            enabled: l.enabled,
+            createdAt: l.createdAt.toISOString(),
+          }))}
         />
       </div>
 
