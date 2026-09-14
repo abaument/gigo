@@ -179,9 +179,16 @@ Page Logs : le call apparaît (indicateur live), clique → drawer avec input/ou
 > build Vercel), et `maxDuration = 60` déjà exporté sur les 2 routes lourdes (webhook + playground).
 > Les variables d'environnement sont **prêtes à coller** dans `~/Desktop/Gigo/VERCEL_ENV.txt` (hors repo).
 
+> **Instance de production en ligne : https://gigo-two.vercel.app**
+> Compte de démo : `demo@gigo.dev` / `GigoLyon2026!`
+
 1. **Avant tout** : régénérer le mot de passe DB Supabase (voir §5 — il a été exposé). Les clés
    IA ne sont **plus nécessaires côté serveur** (BYOK) : chaque utilisateur — y compris le compte
    démo — saisit les siennes dans `/settings` après connexion.
+0. **Réglages à faire une fois** (sinon liens et emails cassés) :
+   - Vercel → Environment Variables → `NEXT_PUBLIC_BASE_URL=https://gigo-two.vercel.app` → Redeploy
+   - Supabase → Authentication → URL Configuration → Site URL = la même, et Redirect URLs =
+     `https://gigo-two.vercel.app/**` + `http://localhost:3000/**`
 2. [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `abaument/gigo` (framework Next.js
    auto-détecté, bun détecté via `bun.lock`).
 3. Dans l'écran d'import, section *Environment Variables* : coller **tout le bloc** de `VERCEL_ENV.txt`
