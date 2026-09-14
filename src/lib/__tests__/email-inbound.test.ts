@@ -2,38 +2,52 @@ import { describe, expect, it } from 'vitest';
 import {
   buildEmailInputJson,
   buildInboundAddress,
-  extractAdapterId,
+  extractEmailRouting,
   parseCsv,
 } from '../email-inbound';
 
 const ADAPTER_ID = '5396e685-7e1c-4d7b-855b-d5d405e0fefd';
 
-describe('extractAdapterId', () => {
-  it('accepts a UUID mailbox hash (case-insensitive)', () => {
-    expect(extractAdapterId({ MailboxHash: ADAPTER_ID })).toBe(ADAPTER_ID);
-    expect(extractAdapterId({ MailboxHash: ADAPTER_ID.toUpperCase() })).toBe(ADAPTER_ID);
-    expect(extractAdapterId({ MailboxHash: ` ${ADAPTER_ID} ` })).toBe(ADAPTER_ID);
+describe('extractEmailRouting', () => {
+  const TOKEN = 'emt_AbCdEf123456';
+
+  it('accepts <uuid>.<token> (case-insensitive uuid)', () => {
+    expect(extractEmailRouting({ MailboxHash: `${ADAPTER_ID}.${TOKEN}` })).toEqual({
+      adapterId: ADAPTER_ID,
+      token: TOKEN,
+    });
+    expect(
+      extractEmailRouting({ MailboxHash: ` ${ADAPTER_ID.toUpperCase()}.${TOKEN} ` })
+    ).toEqual({ adapterId: ADAPTER_ID, token: TOKEN });
   });
 
-  it('rejects missing or non-UUID hashes', () => {
-    expect(extractAdapterId({})).toBeNull();
-    expect(extractAdapterId({ MailboxHash: '' })).toBeNull();
-    expect(extractAdapterId({ MailboxHash: 'not-a-uuid' })).toBeNull();
-    expect(extractAdapterId({ MailboxHash: "'; DROP TABLE adapters;--" })).toBeNull();
+  it('rejects a bare adapter id (token is mandatory)', () => {
+    expect(extractEmailRouting({ MailboxHash: ADAPTER_ID })).toBeNull();
+  });
+
+  it('rejects missing, malformed or injected values', () => {
+    expect(extractEmailRouting({})).toBeNull();
+    expect(extractEmailRouting({ MailboxHash: '' })).toBeNull();
+    expect(extractEmailRouting({ MailboxHash: `not-a-uuid.${TOKEN}` })).toBeNull();
+    expect(extractEmailRouting({ MailboxHash: `${ADAPTER_ID}.short` })).toBeNull();
+    expect(extractEmailRouting({ MailboxHash: "'; DROP TABLE adapters;--" })).toBeNull();
   });
 });
 
 describe('buildInboundAddress', () => {
-  it('injects the adapter id via plus-addressing', () => {
-    expect(buildInboundAddress('abc123@inbound.postmarkapp.com', ADAPTER_ID)).toBe(
-      `abc123+${ADAPTER_ID}@inbound.postmarkapp.com`
+  const TOKEN = 'emt_AbCdEf123456';
+
+  it('injects id and token via plus-addressing', () => {
+    expect(buildInboundAddress('abc123@inbound.postmarkapp.com', ADAPTER_ID, TOKEN)).toBe(
+      `abc123+${ADAPTER_ID}.${TOKEN}@inbound.postmarkapp.com`
     );
   });
 
-  it('returns null when the inbox is unset or malformed', () => {
-    expect(buildInboundAddress(undefined, ADAPTER_ID)).toBeNull();
-    expect(buildInboundAddress('', ADAPTER_ID)).toBeNull();
-    expect(buildInboundAddress('no-at-sign', ADAPTER_ID)).toBeNull();
+  it('returns null when the inbox is unset/malformed or ingress is disabled', () => {
+    expect(buildInboundAddress(undefined, ADAPTER_ID, TOKEN)).toBeNull();
+    expect(buildInboundAddress('', ADAPTER_ID, TOKEN)).toBeNull();
+    expect(buildInboundAddress('no-at-sign', ADAPTER_ID, TOKEN)).toBeNull();
+    expect(buildInboundAddress('abc123@inbound.postmarkapp.com', ADAPTER_ID, null)).toBeNull();
   });
 });
 

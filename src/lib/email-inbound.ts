@@ -38,10 +38,28 @@ export interface InboundEmailPayload {
   }[];
 }
 
-/** The adapter UUID carried in the plus-address, or null. */
-export function extractAdapterId(payload: InboundEmailPayload): string | null {
-  const hash = payload.MailboxHash?.trim().toLowerCase();
-  return hash && UUID_RE.test(hash) ? hash : null;
+export interface EmailRouting {
+  adapterId: string;
+  token: string;
+}
+
+/**
+ * Routing carried in the plus-address: `<adapterId>.<ingestToken>`.
+ * The token is mandatory — a bare adapter UUID (which by design leaks in
+ * webhook URLs) must never be enough to inject data by email.
+ */
+export function extractEmailRouting(payload: InboundEmailPayload): EmailRouting | null {
+  const hash = payload.MailboxHash?.trim();
+  if (!hash) return null;
+
+  const dot = hash.indexOf('.');
+  if (dot === -1) return null;
+
+  const adapterId = hash.slice(0, dot).toLowerCase();
+  const token = hash.slice(dot + 1);
+  if (!UUID_RE.test(adapterId) || !/^emt_[A-Za-z0-9_-]{8,64}$/.test(token)) return null;
+
+  return { adapterId, token };
 }
 
 function stripHtml(html: string): string {
@@ -200,11 +218,16 @@ export function buildEmailInputJson(payload: InboundEmailPayload): Record<string
 /**
  * The adapter's inbound email address, derived from the configured inbox
  * (`NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS`, e.g. `abc123@inbound.postmarkapp.com`)
- * via plus-addressing. Null when inbound email is not configured.
+ * via plus-addressing, carrying the adapter's ingest token. Null when
+ * inbound email is not configured or ingress is disabled for the adapter.
  */
-export function buildInboundAddress(inbox: string | undefined, adapterId: string): string | null {
-  if (!inbox || !inbox.includes('@')) return null;
+export function buildInboundAddress(
+  inbox: string | undefined,
+  adapterId: string,
+  ingestToken: string | null | undefined
+): string | null {
+  if (!inbox || !inbox.includes('@') || !ingestToken) return null;
   const [local, domain] = inbox.split('@');
   if (!local || !domain) return null;
-  return `${local}+${adapterId}@${domain}`;
+  return `${local}+${adapterId}.${ingestToken}@${domain}`;
 }

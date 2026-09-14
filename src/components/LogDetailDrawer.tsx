@@ -27,10 +27,12 @@ interface LogDetailDrawerProps {
 
 export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerProps) {
   const t = useTranslations('logs');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const { toast } = useToast();
   const [tab, setTab] = useState<DrawerTab>('overview');
   const [fullLog, setFullLog] = useState<TransformationLog | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [savingExample, setSavingExample] = useState(false);
   const [exampleSaved, setExampleSaved] = useState(false);
 
@@ -67,9 +69,15 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
 
   useEffect(() => {
     let cancelled = false;
-    getLogById(log.id).then((result) => {
-      if (!cancelled) setFullLog(result);
-    });
+    setLoadFailed(false);
+    getLogById(log.id)
+      .then((result) => {
+        if (!cancelled) setFullLog(result);
+      })
+      .catch(() => {
+        // never leave the payload tabs spinning forever
+        if (!cancelled) setLoadFailed(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -134,7 +142,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
                 type="button"
                 onClick={onClose}
                 className="p-2 text-taupe hover:text-cream rounded-lg hover:bg-roast transition-colors"
-                aria-label="Close"
+                aria-label={tCommon('close')}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -171,7 +179,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-[11px] font-accent uppercase tracking-wider text-taupe mb-1">
-                      Transform
+                      {t('stepTransform')}
                     </p>
                     <p className="font-mono text-sm text-cream">
                       {formatDuration(log.transformDuration)}
@@ -179,7 +187,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
                   </div>
                   <div>
                     <p className="text-[11px] font-accent uppercase tracking-wider text-taupe mb-1">
-                      Forward
+                      {t('stepForward')}
                     </p>
                     <p className="font-mono text-sm text-cream">
                       {formatDuration(log.forwardDuration)}
@@ -187,7 +195,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
                   </div>
                   <div>
                     <p className="text-[11px] font-accent uppercase tracking-wider text-taupe mb-1">
-                      Total
+                      {t('stepTotal')}
                     </p>
                     <p className="font-mono text-sm text-amber">
                       {formatDuration(log.totalDuration)}
@@ -209,7 +217,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
                       : '—'
                   }
                 />
-                <MetaRow label="Source" value={log.sourceIp ?? '—'} />
+                <MetaRow label={t('sourceLabel')} value={log.sourceIp ?? '—'} />
                 <MetaRow
                   label={t('colForwarding')}
                   value={
@@ -231,7 +239,11 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
           )}
 
           {tab !== 'overview' &&
-            (fullLog === null ? (
+            (loadFailed ? (
+              <p className="text-sm text-coral font-accent text-center py-10">
+                {t('detailLoadError')}
+              </p>
+            ) : fullLog === null ? (
               <div className="flex items-center justify-center py-16 text-taupe">
                 <Spinner className="w-6 h-6" />
               </div>

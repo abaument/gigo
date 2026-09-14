@@ -23,7 +23,7 @@ import {
   PROMPT_EXAMPLES,
   saveExample,
 } from '../learnings';
-import { buildSystemPrompt } from '../transformer';
+import { buildSystemPrompt, filterLearningsForSchema } from '../transformer';
 
 const okTransform = {
   success: true as const,
@@ -210,6 +210,42 @@ describe('getPromptLearnings', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ kind: 'pitfall' }) })
     );
+  });
+});
+
+describe('filterLearningsForSchema', () => {
+  const schema = '{"first_name": "Jean", "city": "Lyon"}';
+
+  it('keeps examples whose output conforms to the current schema', () => {
+    const result = filterLearningsForSchema(
+      {
+        examples: [{ input: '{"a":1}', output: '{"first_name":"X","city":"Y"}' }],
+        pitfalls: ['p'],
+      },
+      schema
+    );
+    expect(result.examples).toHaveLength(1);
+    expect(result.pitfalls).toEqual(['p']);
+  });
+
+  it('drops stale examples (extra keys vs current schema) and unparseable outputs', () => {
+    const result = filterLearningsForSchema(
+      {
+        examples: [
+          { input: '{"a":1}', output: '{"first_name":"X","legacy_field":true}' },
+          { input: '{"b":2}', output: 'not json' },
+          { input: '{"c":3}', output: '{"city":"Lyon"}' },
+        ],
+        pitfalls: [],
+      },
+      schema
+    );
+    expect(result.examples).toEqual([{ input: '{"c":3}', output: '{"city":"Lyon"}' }]);
+  });
+
+  it('returns learnings untouched when the schema itself is unparseable', () => {
+    const learnings = { examples: [{ input: '{}', output: 'x' }], pitfalls: [] };
+    expect(filterLearningsForSchema(learnings, 'not json')).toBe(learnings);
   });
 });
 

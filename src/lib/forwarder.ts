@@ -1,9 +1,15 @@
 /**
  * Forward transformed data to an adapter's destination endpoint,
- * with decrypted auth headers and a hard timeout.
+ * with decrypted auth headers, a hard timeout, SSRF re-validation at
+ * forward time and a capped response read.
  */
 
 import { decrypt } from '@/lib/encryption';
+import { assertSafeUrl, SsrfError } from '@/lib/ssrf-guard';
+
+// Destination responses are only echoed to the caller and logged
+// (truncated at 10k chars) — never buffer more than this.
+const MAX_RESPONSE_BYTES = 65_536;
 
 export interface ForwardAuthConfig {
   authMethod: string;
@@ -53,6 +59,11 @@ export async function forwardToDestination(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // Re-validate at forward time, not only at save time: a DNS record can
+    // be flipped to an internal address after the adapter was created
+    // (rebinding). Save-time validation alone is a TOCTOU hole.
+    await assertSafeUrl(destinationUrl);
+
     const response = await fetch(destinationUrl, {
       method: method.toUpperCase(),
       headers,
@@ -61,13 +72,7 @@ export async function forwardToDestination(
       redirect: 'manual',
     });
 
-    let responseData: unknown;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      responseData = await response.json().catch(() => null);
-    } else {
-      responseData = await response.text().catch(() => null);
-    }
+    const responseData = await readBodyCapped(response, MAX_RESPONSE_BYTES);
 
     return {
       success: response.ok,
@@ -76,6 +81,13 @@ export async function forwardToDestination(
       durationMs: Date.now() - startTime,
     };
   } catch (error) {
+    if (error instanceof SsrfError) {
+      return {
+        success: false,
+        error: `Destination URL rejected: ${error.message}`,
+        durationMs: Date.now() - startTime,
+      };
+    }
     const aborted = error instanceof Error && error.name === 'AbortError';
     return {
       success: false,
@@ -89,4 +101,42 @@ export async function forwardToDestination(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Read a response body with a hard byte cap — a hostile or misconfigured
+ * destination must not be able to OOM the function by streaming an
+ * unbounded body within the timeout window.
+ */
+async function readBodyCapped(response: Response, maxBytes: number): Promise<unknown> {
+  const reader = response.body?.getReader();
+  if (!reader) return null;
+
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > maxBytes) {
+        await reader.cancel().catch(() => {});
+        break;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return null;
+  }
+
+  const text = Buffer.concat(chunks).toString('utf8');
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text || null;
+    }
+  }
+  return text || null;
 }

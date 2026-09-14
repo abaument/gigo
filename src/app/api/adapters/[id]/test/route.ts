@@ -27,6 +27,8 @@ const TESTS_PER_MINUTE = 20;
 const testRequestSchema = z.object({
   input: z.unknown(),
   forward: z.boolean().default(false),
+  /** comparison mode: run without the adapter's learned knowledge */
+  ignoreLearnings: z.boolean().default(false),
 });
 
 export async function POST(
@@ -98,6 +100,7 @@ export async function POST(
       adapter,
       inputJson: parsed.data.input,
       forward: parsed.data.forward,
+      ignoreLearnings: parsed.data.ignoreLearnings,
       isTest: true,
       sourceIp: 'playground',
       userAgent: 'GIGO Playground',

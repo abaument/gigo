@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { tokenizeJson, parseJsonError, TOKEN_CLASS } from '@/lib/utils/json-tokenizer';
 import { formatBytes } from '@/lib/utils/format';
@@ -38,25 +38,31 @@ export function JsonEditor({
   const t = useTranslations('common');
   const preRef = useRef<HTMLPreElement>(null);
 
-  const { tokens, error } = useMemo(() => {
+  // Pure: no parent setState during render (that would be a cross-
+  // component update while rendering — React warns and may replay memos).
+  const { tokens, error, isValid: jsonIsValid } = useMemo(() => {
     const tokens = tokenizeJson(value);
     if (!value.trim()) {
-      onValidChange?.(false);
-      return { tokens, error: null };
+      return { tokens, error: null, isValid: false };
     }
     try {
       JSON.parse(value);
-      onValidChange?.(true);
-      return { tokens, error: null };
+      return { tokens, error: null, isValid: true };
     } catch (err) {
-      onValidChange?.(false);
       return {
         tokens,
         error: parseJsonError(value, err as SyntaxError),
+        isValid: false,
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
+
+  // Notify the parent after commit, not during render.
+  useEffect(() => {
+    onValidChange?.(jsonIsValid);
+    // onValidChange identity is not stable in callers; validity is the signal
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jsonIsValid]);
 
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
     if (preRef.current) {

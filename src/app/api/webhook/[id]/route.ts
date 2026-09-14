@@ -21,6 +21,35 @@ export const maxDuration = 60;
 
 const MAX_PAYLOAD_BYTES = 1_048_576; // 1 MB
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Read the body with a hard cap enforced on the STREAM: a chunked request
+ * carries no Content-Length, so the header check alone lets an attacker
+ * buffer unbounded bytes into memory before any size test.
+ */
+async function readBodyCapped(
+  request: NextRequest,
+  maxBytes: number
+): Promise<{ body: string } | { tooLarge: true }> {
+  const reader = request.body?.getReader();
+  if (!reader) return { body: '' };
+
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel().catch(() => {});
+      return { tooLarge: true };
+    }
+    chunks.push(value);
+  }
+  return { body: Buffer.concat(chunks).toString('utf8') };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -56,6 +85,12 @@ export async function POST(
     'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
+  // A non-UUID path segment would make Prisma throw (P2023) and surface
+  // as a 500 — the correct contract for an unknown adapter is 404.
+  if (!UUID_RE.test(adapterId)) {
+    return jsonError(404, 'ADAPTER_NOT_FOUND', 'Adapter not found');
+  }
+
   try {
     // 1. Adapter lookup
     const adapter = await db.adapter.findUnique({ where: { id: adapterId } });
@@ -83,19 +118,20 @@ export async function POST(
       });
     }
 
-    // 4. Payload size — fast reject on Content-Length, then re-check the
-    // actual bytes (Content-Length can lie).
+    // 4. Payload size — fast reject on Content-Length, then enforce the
+    // cap on the stream itself (Content-Length can lie or be absent).
     const contentLength = Number(request.headers.get('content-length') ?? 0);
     if (contentLength > MAX_PAYLOAD_BYTES) {
       return jsonError(413, 'PAYLOAD_TOO_LARGE', 'Payload exceeds 1MB limit');
     }
 
-    const body = await request.text();
+    const read = await readBodyCapped(request, MAX_PAYLOAD_BYTES);
+    if ('tooLarge' in read) {
+      return jsonError(413, 'PAYLOAD_TOO_LARGE', 'Payload exceeds 1MB limit');
+    }
+    const body = read.body;
     if (!body || body.trim() === '') {
       return jsonError(400, 'EMPTY_BODY', 'Empty request body');
-    }
-    if (Buffer.byteLength(body) > MAX_PAYLOAD_BYTES) {
-      return jsonError(413, 'PAYLOAD_TOO_LARGE', 'Payload exceeds 1MB limit');
     }
 
     // 5. Parse
@@ -154,47 +190,27 @@ export async function POST(
 }
 
 /**
- * GET — minimal public info. The target schema and stats are only
- * exposed through the authenticated dashboard.
+ * GET — usage instructions only. Deliberately opaque: it never reveals
+ * the adapter's name, its state, or whether a secret is required, so an
+ * unauthenticated holder of the id learns nothing about the owner's
+ * setup. Integration details live in the authenticated dashboard.
  */
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const adapter = await db.adapter.findUnique({
-      where: { id: params.id },
-      select: { id: true, name: true, isActive: true, webhookSecret: true },
-    });
-
-    if (!adapter) {
-      return NextResponse.json(
-        { error: 'Adapter not found' },
-        { status: 404, headers: corsHeaders }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        id: adapter.id,
-        name: adapter.name,
-        isActive: adapter.isActive,
-        hasSecret: !!adapter.webhookSecret,
-        usage: {
-          method: 'POST',
-          contentType: 'application/json',
-          description: 'Send any JSON payload to transform it to the target schema',
-          ...(adapter.webhookSecret
-            ? { requiredHeaders: ['X-Webhook-Secret'] }
-            : {}),
-        },
+  return NextResponse.json(
+    {
+      id: params.id,
+      usage: {
+        method: 'POST',
+        contentType: 'application/json',
+        description:
+          'POST a JSON payload to this URL to transform it to the adapter\'s target schema. ' +
+          'If the adapter is protected, include its X-Webhook-Secret header.',
+        maxPayloadBytes: MAX_PAYLOAD_BYTES,
       },
-      { headers: corsHeaders }
-    );
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to fetch adapter' },
-      { status: 500, headers: corsHeaders }
-    );
-  }
+    },
+    { headers: corsHeaders }
+  );
 }

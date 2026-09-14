@@ -142,7 +142,12 @@
     "copyCurl": "Copy as cURL",
     "notFound": "Adapter not found",
     "emailTitle": "Inbound email address",
-    "emailHelp": "Send or forward an email to this address: its content (and JSON/CSV attachments) gets transformed and delivered like a webhook call."
+    "emailHelp": "Optional inbound channel, disabled by default. Once enabled, any email sent or forwarded to the dedicated address (body + JSON/CSV attachments) is transformed like a webhook call.",
+    "emailEnable": "Enable",
+    "emailDisable": "Disable",
+    "emailEnabled": "Email ingress enabled",
+    "emailDisabled": "Email ingress disabled",
+    "emailDisabledHint": "Enable email ingress to get a dedicated address for this adapter. The address embeds a secret token: only share it with trusted senders."
   },
   "playground": {
     "title": "Playground",
@@ -160,7 +165,15 @@
     "forwardFailed": "Forwarding failed: {error}",
     "history": "Session history",
     "historyEmpty": "Tests you run will appear here.",
-    "rateLimited": "Too many test requests — wait a moment and try again."
+    "rateLimited": "Too many test requests — wait a moment and try again.",
+    "learningsToggle": "Learnings",
+    "learningsApplied": "{count} learnings applied",
+    "learningsAppliedHelp": "Reference examples and learned constraints injected into this transformation",
+    "saveExample": "Save as example",
+    "saveExampleHelp": "This result is correct: save it as a reference example for future calls",
+    "exampleSaved": "Saved — the adapter will remember",
+    "exampleSavedBadge": "Saved",
+    "exampleSaveError": "Could not save the example"
   },
   "logs": {
     "title": "Logs",
@@ -212,7 +225,12 @@
     "exampleCap": "Example limit reached for this adapter — delete one first",
     "exampleDuplicate": "This input is already learned",
     "exampleTooLarge": "Payload too large to be an example",
-    "exampleNotClean": "This transformation has warnings (keys outside the schema) — it cannot become an example"
+    "exampleNotClean": "This transformation has warnings (keys outside the schema) — it cannot become an example",
+    "stepTransform": "Transform",
+    "stepForward": "Forward",
+    "stepTotal": "Total",
+    "sourceLabel": "Source",
+    "detailLoadError": "Could not load this log's details"
   },
   "toasts": {
     "adapterCreated": "Adapter created",
@@ -223,7 +241,8 @@
     "adapterDisabled": "Adapter disabled",
     "secretRegenerated": "New secret generated",
     "secretRemoved": "Secret removed",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "dismiss": "Dismiss"
   },
   "errors": {
     "title": "Something went wrong",
@@ -248,7 +267,8 @@
     "signInLink": "Sign in",
     "checkEmailTitle": "Check your email",
     "checkEmailDescription": "We sent a confirmation link to {email}. Click it to activate your account.",
-    "passwordTooShort": "Password must be at least 6 characters"
+    "passwordTooShort": "Password must be at least 6 characters",
+    "unexpectedError": "An unexpected error occurred"
   },
   "deleteDialog": {
     "title": "Delete Adapter",

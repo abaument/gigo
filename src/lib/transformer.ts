@@ -174,6 +174,35 @@ export async function transformJson(
 }
 
 /**
+ * Drop learned examples whose stored output no longer conforms to the
+ * CURRENT target schema (e.g. after a schema edit slipped past the
+ * pause-on-change hook, or a learning was re-enabled manually). Teaching
+ * the model from stale outputs would be worse than teaching nothing.
+ */
+export function filterLearningsForSchema(
+  learnings: PromptLearnings,
+  targetSchemaExample: string
+): PromptLearnings {
+  let targetExample: unknown;
+  try {
+    targetExample = JSON.parse(targetSchemaExample);
+  } catch {
+    return learnings;
+  }
+
+  return {
+    ...learnings,
+    examples: learnings.examples.filter((e) => {
+      try {
+        return validateTransformedOutput(JSON.parse(e.output), targetExample).isValid;
+      } catch {
+        return false;
+      }
+    }),
+  };
+}
+
+/**
  * Validate that transformed output matches target schema keys — a safety
  * check that the AI didn't hallucinate extra keys.
  */

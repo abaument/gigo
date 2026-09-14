@@ -18,7 +18,7 @@ import { generateSchemaFromDocs, generateSchemaFromUrl } from './schema-generato
 import { envApiKey, KEYABLE_PROVIDERS, resolveApiKey } from './api-keys';
 import { disableLearningsOnSchemaChange, saveExample } from './learnings';
 import { assertSafeUrl, SsrfError } from './ssrf-guard';
-import { generateWebhookSecret } from './security';
+import { generateEmailIngestToken, generateWebhookSecret } from './security';
 import { runTransformation } from './pipeline';
 import {
   createAdapterSchema,
@@ -457,6 +457,49 @@ export async function regenerateWebhookSecret(id: string) {
     return { success: true as const, data: { secret } };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to regenerate secret';
+    return { success: false as const, error: message };
+  }
+}
+
+/**
+ * Enable (or rotate) email ingress for an adapter: returns the address
+ * token that must appear in the plus-address. Disabled by default —
+ * a leaked adapter UUID alone can never inject data by email.
+ */
+export async function enableEmailIngress(id: string) {
+  try {
+    const user = await requireAuth();
+
+    const token = generateEmailIngestToken();
+    const { count } = await db.adapter.updateMany({
+      where: { id, userId: user.id },
+      data: { emailIngestToken: token },
+    });
+    if (count === 0) return { success: false as const, error: 'Adapter not found' };
+
+    revalidatePath(`/adapters/${id}`);
+    return { success: true as const, data: { token } };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to enable email ingress';
+    return { success: false as const, error: message };
+  }
+}
+
+/** Disable email ingress for an adapter (existing address stops working). */
+export async function disableEmailIngress(id: string) {
+  try {
+    const user = await requireAuth();
+
+    const { count } = await db.adapter.updateMany({
+      where: { id, userId: user.id },
+      data: { emailIngestToken: null },
+    });
+    if (count === 0) return { success: false as const, error: 'Adapter not found' };
+
+    revalidatePath(`/adapters/${id}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to disable email ingress';
     return { success: false as const, error: message };
   }
 }

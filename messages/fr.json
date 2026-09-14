@@ -142,7 +142,12 @@
     "copyCurl": "Copier en cURL",
     "notFound": "Adaptateur introuvable",
     "emailTitle": "Adresse email entrante",
-    "emailHelp": "Envoyez ou transférez un email à cette adresse : son contenu (et ses pièces jointes JSON/CSV) sera transformé et livré comme un appel webhook."
+    "emailHelp": "Entrée optionnelle, désactivée par défaut. Une fois activée, tout email envoyé ou transféré à l'adresse dédiée (contenu + pièces jointes JSON/CSV) est transformé comme un appel webhook.",
+    "emailEnable": "Activer",
+    "emailDisable": "Désactiver",
+    "emailEnabled": "Entrée email activée",
+    "emailDisabled": "Entrée email désactivée",
+    "emailDisabledHint": "Activez l'entrée email pour obtenir une adresse dédiée à cet adaptateur. L'adresse contient un jeton secret : ne la partagez qu'avec des expéditeurs de confiance."
   },
   "playground": {
     "title": "Playground",
@@ -160,7 +165,15 @@
     "forwardFailed": "Échec du forwarding : {error}",
     "history": "Historique de session",
     "historyEmpty": "Vos tests apparaîtront ici.",
-    "rateLimited": "Trop de tests — patientez un instant et réessayez."
+    "rateLimited": "Trop de tests — patientez un instant et réessayez.",
+    "learningsToggle": "Apprentissages",
+    "learningsApplied": "{count} appris appliqués",
+    "learningsAppliedHelp": "Exemples de référence et contraintes apprises injectés dans cette transformation",
+    "saveExample": "Mémoriser comme exemple",
+    "saveExampleHelp": "Ce résultat est correct : l'enregistrer comme exemple de référence pour les prochains appels",
+    "exampleSaved": "Mémorisé — l'adaptateur s'en souviendra",
+    "exampleSavedBadge": "Mémorisé",
+    "exampleSaveError": "Impossible de mémoriser l'exemple"
   },
   "logs": {
     "title": "Logs",
@@ -212,7 +225,12 @@
     "exampleCap": "Limite d'exemples atteinte pour cet adaptateur — supprimez-en un d'abord",
     "exampleDuplicate": "Cette entrée est déjà apprise",
     "exampleTooLarge": "Payload trop volumineux pour servir d'exemple",
-    "exampleNotClean": "Cette transformation contient des avertissements (clés hors schéma) — elle ne peut pas servir d'exemple"
+    "exampleNotClean": "Cette transformation contient des avertissements (clés hors schéma) — elle ne peut pas servir d'exemple",
+    "stepTransform": "Transformation",
+    "stepForward": "Livraison",
+    "stepTotal": "Total",
+    "sourceLabel": "Source",
+    "detailLoadError": "Impossible de charger le détail de ce log"
   },
   "toasts": {
     "adapterCreated": "Adaptateur créé",
@@ -223,7 +241,8 @@
     "adapterDisabled": "Adaptateur désactivé",
     "secretRegenerated": "Nouveau secret généré",
     "secretRemoved": "Secret retiré",
-    "error": "Une erreur est survenue"
+    "error": "Une erreur est survenue",
+    "dismiss": "Fermer"
   },
   "errors": {
     "title": "Une erreur est survenue",
@@ -248,7 +267,8 @@
     "signInLink": "Se connecter",
     "checkEmailTitle": "Vérifiez vos emails",
     "checkEmailDescription": "Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte.",
-    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères"
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "unexpectedError": "Une erreur inattendue est survenue"
   },
   "deleteDialog": {
     "title": "Supprimer l'adaptateur",

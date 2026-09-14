@@ -7,7 +7,12 @@
 
 import type { Adapter } from '@prisma/client';
 import { db } from '@/lib/db';
-import { transformJson, validateTransformedOutput, type TransformResult } from '@/lib/transformer';
+import {
+  filterLearningsForSchema,
+  transformJson,
+  validateTransformedOutput,
+  type TransformResult,
+} from '@/lib/transformer';
 import { forwardToDestination, type ForwardResult } from '@/lib/forwarder';
 import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
 import { resolveApiKey } from '@/lib/api-keys';
@@ -22,6 +27,8 @@ export interface PipelineArgs {
   replayOfId?: string | null;
   /** set by the replay action: did the ORIGINAL run's transform fail? */
   replayOriginalFailed?: boolean;
+  /** playground comparison mode: run WITHOUT the learned knowledge */
+  ignoreLearnings?: boolean;
   sourceIp?: string;
   userAgent?: string;
 }
@@ -33,6 +40,8 @@ export interface PipelineResult {
   forwarding: ForwardResult | null;
   warnings: string[];
   totalDurationMs: number;
+  /** knowledge injected into this run's prompt (null when none/disabled) */
+  learningsApplied: { examples: number; pitfalls: number } | null;
 }
 
 export async function runTransformation(args: PipelineArgs): Promise<PipelineResult> {
@@ -48,7 +57,7 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
     const transform: TransformResult = {
       success: false,
       error: `Monthly token quota exceeded (${quota.used}/${quota.quota}). Resets on the 1st.`,
-      errorCode: 'RATE_LIMIT',
+      errorCode: 'QUOTA_EXCEEDED',
       durationMs: 0,
     };
     let traceId: string | null = null;
@@ -76,26 +85,37 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
       forwarding: null,
       warnings: [],
       totalDurationMs: Date.now() - startTime,
+      learningsApplied: null,
     };
   }
 
   // BYOK key + the adapter's learned knowledge, fetched concurrently.
   // Both are best-effort: failures fall through to defaults.
-  const [apiKey, learnings] = await Promise.all([
+  const [apiKey, rawLearnings] = await Promise.all([
     resolveApiKey(
       adapter.userId,
       adapter.modelProvider === 'anthropic' ? 'anthropic' : 'openai'
     ).catch(() => null),
-    adapter.learningEnabled
+    adapter.learningEnabled && !args.ignoreLearnings
       ? getPromptLearnings(adapter.id).catch(() => null)
       : Promise.resolve(null),
   ]);
+
+  // Stale-knowledge guard: never teach from an example whose output no
+  // longer matches the CURRENT target schema.
+  const learnings = rawLearnings
+    ? filterLearningsForSchema(rawLearnings, adapter.targetSchema)
+    : null;
+  const learningsApplied =
+    learnings && (learnings.examples.length > 0 || learnings.pitfalls.length > 0)
+      ? { examples: learnings.examples.length, pitfalls: learnings.pitfalls.length }
+      : null;
 
   const transform = await transformJson(inputJson, adapter.targetSchema, {
     provider: adapter.modelProvider,
     modelName: adapter.modelName ?? undefined,
     apiKey: apiKey ?? undefined,
-    learnings: learnings ?? undefined,
+    learnings: learningsApplied ? learnings! : undefined,
   });
 
   const warnings: string[] = [];
@@ -197,6 +217,7 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
     forwarding,
     warnings,
     totalDurationMs,
+    learningsApplied,
   };
 }
 
@@ -234,6 +255,7 @@ export function pipelineResponseBody(
       model: result.transform.model,
       input_tokens: result.transform.usage?.inputTokens ?? null,
       output_tokens: result.transform.usage?.outputTokens ?? null,
+      ...(result.learningsApplied ? { learnings_applied: result.learningsApplied } : {}),
       ...(result.warnings.length > 0 ? { warnings: result.warnings } : {}),
     };
   } else {
@@ -260,6 +282,10 @@ export function pipelineResponseBody(
 /** Map a failed transform's errorCode to an HTTP status. */
 export function transformErrorStatus(result: PipelineResult): number {
   switch (result.transform.errorCode) {
+    case 'QUOTA_EXCEEDED':
+      // Caller-attributable and persists until the 1st: 429, not 503, so
+      // senders back off instead of hammering with "transient" retries.
+      return 429;
     case 'RATE_LIMIT':
       return 503;
     case 'TIMEOUT':

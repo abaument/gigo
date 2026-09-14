@@ -16,18 +16,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifyWebhookSecret } from '@/lib/security';
+// (verifyWebhookSecret is a generic timing-safe token comparison)
 import { checkRateLimit } from '@/lib/rate-limit';
 import { runTransformation } from '@/lib/pipeline';
 import {
   buildEmailInputJson,
-  extractAdapterId,
+  extractEmailRouting,
   type InboundEmailPayload,
 } from '@/lib/email-inbound';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const MAX_PAYLOAD_BYTES = 5 * 1_048_576; // 5 MB (email + base64 attachments)
+// Must stay under the Vercel platform body limit (~4.5 MB): above it the
+// platform 413s before this handler runs, and the provider would retry a
+// message we intend to acknowledge-and-drop.
+const MAX_PAYLOAD_BYTES = 4 * 1_048_576;
 
 function ignored(reason: string) {
   // 200 on purpose: tells the provider "delivered, do not retry".
@@ -53,29 +57,37 @@ export async function POST(request: NextRequest) {
 
   const contentLength = Number(request.headers.get('content-length') ?? 0);
   if (contentLength > MAX_PAYLOAD_BYTES) {
-    return ignored('email exceeds 5MB limit');
+    return ignored('email exceeds size limit');
   }
 
   let payload: InboundEmailPayload;
   try {
     const body = await request.text();
     if (Buffer.byteLength(body) > MAX_PAYLOAD_BYTES) {
-      return ignored('email exceeds 5MB limit');
+      return ignored('email exceeds size limit');
     }
     payload = JSON.parse(body);
   } catch {
     return ignored('unparseable provider payload');
   }
 
-  const adapterId = extractAdapterId(payload);
-  if (!adapterId) {
-    return ignored('no adapter id in recipient address (expected inbox+<adapterId>@...)');
+  const routing = extractEmailRouting(payload);
+  if (!routing) {
+    return ignored('invalid recipient address (expected inbox+<adapterId>.<token>@...)');
   }
 
   try {
-    const adapter = await db.adapter.findUnique({ where: { id: adapterId } });
+    const adapter = await db.adapter.findUnique({ where: { id: routing.adapterId } });
     if (!adapter) return ignored('adapter not found');
     if (!adapter.isActive) return ignored('adapter is disabled');
+    // Email ingress is opt-in and token-gated (timing-safe): the adapter
+    // UUID alone — which travels in public webhook URLs — is not enough.
+    if (
+      !adapter.emailIngestToken ||
+      !verifyWebhookSecret(routing.token, adapter.emailIngestToken)
+    ) {
+      return ignored('email ingress disabled or invalid token');
+    }
 
     // 429 → the provider retries later, which is what we want here.
     const rate = await checkRateLimit(adapter.id, adapter.rateLimitPerMin);

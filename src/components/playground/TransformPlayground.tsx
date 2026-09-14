@@ -9,9 +9,11 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { buildCurl } from '@/lib/utils/webhook';
+import { saveLogAsExample } from '@/lib/actions';
 import { formatDuration, formatRelativeTime } from '@/lib/utils/format';
+import { useToast } from '@/components/ui/ToastProvider';
 import { JsonEditor } from '@/components/JsonEditor';
 import { JsonViewer } from '@/components/JsonViewer';
 import { CopyButton } from '@/components/CopyButton';
@@ -31,6 +33,8 @@ interface TestResponse {
     model?: string;
     input_tokens?: number | null;
     output_tokens?: number | null;
+    learnings_applied?: { examples: number; pitfalls: number };
+    warnings?: string[];
   };
   forwarding?: {
     success: boolean;
@@ -57,6 +61,8 @@ interface TransformPlaygroundProps {
   hasDestination: boolean;
   webhookSecret: string | null;
   sampleInput?: string;
+  /** show the with/without-learnings comparison toggle */
+  hasLearnings?: boolean;
 }
 
 const DEFAULT_INPUT = `{
@@ -69,17 +75,41 @@ export function TransformPlayground({
   hasDestination,
   webhookSecret,
   sampleInput,
+  hasLearnings = false,
 }: TransformPlaygroundProps) {
   const t = useTranslations('playground');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [input, setInput] = useState(sampleInput ?? DEFAULT_INPUT);
   const [inputValid, setInputValid] = useState(false);
   const [forward, setForward] = useState(false);
+  const [ignoreLearnings, setIgnoreLearnings] = useState(false);
   const [run, setRun] = useState<RunState>({ status: 'idle' });
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [savedTraceIds, setSavedTraceIds] = useState<Set<string>>(new Set());
+  const [savingExample, setSavingExample] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  const handleSaveExample = async (traceId: string) => {
+    setSavingExample(true);
+    try {
+      const result = await saveLogAsExample(traceId);
+      if (result.success) {
+        setSavedTraceIds((prev) => new Set(prev).add(traceId));
+        toast({ variant: 'success', title: t('exampleSaved') });
+        router.refresh();
+      } else {
+        toast({ variant: 'error', title: t('exampleSaveError'), description: result.error });
+      }
+    } catch {
+      toast({ variant: 'error', title: t('exampleSaveError') });
+    } finally {
+      setSavingExample(false);
+    }
+  };
 
   const handleRun = async () => {
     if (!inputValid || run.status === 'running') return;
@@ -93,7 +123,7 @@ export function TransformPlayground({
       const response = await fetch(`/api/adapters/${adapterId}/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: JSON.parse(input), forward }),
+        body: JSON.stringify({ input: JSON.parse(input), forward, ignoreLearnings }),
         signal: controller.signal,
       });
       const result = (await response.json()) as TestResponse;
@@ -148,12 +178,24 @@ export function TransformPlayground({
     <div className="card p-6" id="playground">
       <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
         <h2 className="font-accent font-semibold text-cream text-lg">{t('title')}</h2>
-        {hasDestination && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-taupe font-accent">{t('forwardToggle')}</span>
-            <Toggle checked={forward} onChange={setForward} label={t('forwardToggle')} />
-          </label>
-        )}
+        <div className="flex items-center gap-4 flex-wrap">
+          {hasLearnings && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-taupe font-accent">{t('learningsToggle')}</span>
+              <Toggle
+                checked={!ignoreLearnings}
+                onChange={(checked) => setIgnoreLearnings(!checked)}
+                label={t('learningsToggle')}
+              />
+            </label>
+          )}
+          {hasDestination && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-taupe font-accent">{t('forwardToggle')}</span>
+              <Toggle checked={forward} onChange={setForward} label={t('forwardToggle')} />
+            </label>
+          )}
+        </div>
       </div>
       <p className="text-xs text-clay font-accent mb-5">{t('subtitle')}</p>
 
@@ -227,6 +269,36 @@ export function TransformPlayground({
                       {meta.provider}/{meta.model}
                     </span>
                   )}
+                  {meta.learnings_applied && (
+                    <span
+                      className="badge bg-amber/15 text-amber border border-amber/30"
+                      title={t('learningsAppliedHelp')}
+                    >
+                      🧠{' '}
+                      {t('learningsApplied', {
+                        count:
+                          meta.learnings_applied.examples + meta.learnings_applied.pitfalls,
+                      })}
+                    </span>
+                  )}
+                  {run.status === 'success' &&
+                    run.result.trace_id &&
+                    !meta.warnings &&
+                    (savedTraceIds.has(run.result.trace_id) ? (
+                      <span className="badge bg-sage/15 text-sage border border-sage/30">
+                        ✓ {t('exampleSavedBadge')}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveExample(run.result.trace_id as string)}
+                        disabled={savingExample}
+                        className="badge bg-roast text-sand border border-timber hover:border-amber hover:text-amber transition-colors disabled:opacity-50"
+                        title={t('saveExampleHelp')}
+                      >
+                        {savingExample ? '…' : `+ ${t('saveExample')}`}
+                      </button>
+                    ))}
                   {forwarding &&
                     (forwarding.success ? (
                       <span className="badge-success">
@@ -273,7 +345,7 @@ export function TransformPlayground({
                     {entry.input.replace(/\s+/g, ' ').slice(0, 80)}
                   </code>
                   <span className="text-xs text-clay font-accent shrink-0">
-                    {formatRelativeTime(entry.at)}
+                    {formatRelativeTime(entry.at, locale)}
                   </span>
                 </button>
               </li>

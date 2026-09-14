@@ -16,6 +16,11 @@ export function verifyWebhookSecret(provided: string | null, expected: string): 
   return timingSafeEqual(a, b);
 }
 
+/** Token gating an adapter's email ingress (carried in the plus-address). */
+export function generateEmailIngestToken(): string {
+  return `emt_${randomBytes(12).toString('base64url')}`;
+}
+
 export function generateWebhookSecret(): string {
   return `whsec_${randomBytes(24).toString('base64url')}`;
 }

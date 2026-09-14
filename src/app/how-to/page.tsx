@@ -5,7 +5,6 @@
 
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { buildInboundAddress } from '@/lib/email-inbound';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +35,7 @@ function StepCard({
 export default async function HowToPage() {
   const t = await getTranslations('howTo');
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://your-gigo.example.com';
-  const emailConfigured = Boolean(
-    buildInboundAddress(process.env.NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS, 'adapter-id')
-  );
+  const emailConfigured = Boolean(process.env.NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">

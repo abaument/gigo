@@ -14,7 +14,10 @@ export default function LoginPage() {
   const t = useTranslations('auth');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  // Same-origin only: an absolute or protocol-relative value would make
+  // router.push navigate off-site (open redirect after login).
+  const rawRedirect = searchParams.get('redirect') || '/';
+  const redirect = /^\/(?!\/)/.test(rawRedirect) ? rawRedirect : '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // surfaces auth-callback failures (e.g. expired confirmation links)
@@ -42,7 +45,7 @@ export default function LoginPage() {
       router.push(redirect);
       router.refresh();
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
       setLoading(false);
     }
   };

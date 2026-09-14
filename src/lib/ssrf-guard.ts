@@ -17,10 +17,33 @@ export class SsrfError extends Error {
   }
 }
 
+/**
+ * Extract the embedded IPv4 from an IPv4-mapped/translated IPv6 address.
+ * WHATWG URL canonicalizes `[::ffff:127.0.0.1]` to hex form
+ * `[::ffff:7f00:1]`, so BOTH spellings must be handled — the dotted form
+ * alone is never seen on URL-derived hostnames. Covers ::ffff:0:0/96
+ * (mapped), ::ffff:0:0:0/96 (translated) and 64:ff9b::/96 (NAT64).
+ */
+function embeddedIpv4(ip: string): string | null {
+  const lower = ip.toLowerCase();
+
+  const dotted = lower.match(/^(?:::ffff:|::ffff:0:|64:ff9b::)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) return dotted[1];
+
+  const hex = lower.match(/^(?:::ffff:|::ffff:0:|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+  }
+
+  return null;
+}
+
 export function isPrivateAddress(ip: string): boolean {
-  // Normalize IPv4-mapped IPv6 (::ffff:10.0.0.1)
-  const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  if (mapped) return isPrivateAddress(mapped[1]);
+  // Normalize IPv4-mapped IPv6 in both dotted and hex form
+  const mapped = embeddedIpv4(ip);
+  if (mapped) return isPrivateAddress(mapped);
 
   if (isIP(ip) === 4) {
     const octets = ip.split('.').map(Number);

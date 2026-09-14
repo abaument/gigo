@@ -85,6 +85,10 @@ model Adapter {
   // Security
   webhookSecret   String? @map("webhook_secret") // if set, POST requires matching X-Webhook-Secret
   rateLimitPerMin Int     @default(60) @map("rate_limit_per_min")
+  // Email ingress is opt-in: null = disabled; the token travels in the
+  // plus-address (inbox+<id>.<token>@...) so a leaked adapter UUID is not
+  // enough to inject data by email.
+  emailIngestToken String? @map("email_ingest_token")
 
   // Settings
   isActive        Boolean @default(true) @map("is_active")
@@ -178,6 +182,7 @@ model TransformationLog {
   @@index([adapterId, createdAt])
   @@index([createdAt])
   @@index([success])
+  @@index([replayOfId])
   @@map("transformation_logs")
 }
 

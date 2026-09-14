@@ -40,7 +40,7 @@ bun run dev            # → http://localhost:3000
 ### Qualité
 
 ```bash
-bun run test           # 61 tests Vitest (aucune clé API requise, tout est mocké)
+bun run test           # 110 tests Vitest (aucune clé API requise, tout est mocké)
 bun run test:watch     # en continu
 bunx tsc --noEmit      # typecheck strict
 bun run build          # build de production
@@ -208,13 +208,19 @@ Pas besoin de domaine : Postmark fournit une adresse de réception prête à l'e
    - `NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS` = l'adresse inbound Postmark
    → Redeploy. La carte « Adresse email entrante » apparaît sur chaque page d'adaptateur,
    avec l'adresse complète : `a1b2c3d4e5+<id-adaptateur>@inbound.postmarkapp.com`.
-4. Tester : envoyer un mail (texte libre, ou avec un CSV en pièce jointe) à l'adresse d'un
-   adaptateur → le log apparaît dans la page Logs (source `email`), et le résultat est forwardé
-   si une destination est configurée.
+4. **Activer l'entrée email sur l'adaptateur voulu** : page de l'adaptateur → carte « Adresse email
+   entrante » → **Activer**. L'adresse affichée contient un jeton secret
+   (`inbox+<id-adaptateur>.<jeton>@…`) : sans ce jeton, aucun mail n'est accepté.
+5. Tester : envoyer un mail (texte libre, ou avec un CSV en pièce jointe) à cette adresse → le log
+   apparaît dans la page Logs (source `email`), et le résultat est forwardé si une destination est
+   configurée.
 
-Notes : mails routés par la partie `+<uuid>` de l'adresse (non devinable) ; endpoint protégé par
-secret ; pièces jointes JSON/CSV parsées (CSV tronqué à 200 lignes), PDF/images signalés non
-supportés ; 1 Mo max par pièce jointe, 5 Mo par mail ; le rate limit de l'adaptateur s'applique.
+Notes de sécurité : l'entrée email est **désactivée par défaut, par adaptateur** — connaître l'UUID
+d'un adaptateur (qui circule dans les URLs de webhook) ne suffit pas à y injecter des données.
+Le jeton est comparé en temps constant et régénéré à chaque réactivation. Endpoint protégé par
+`EMAIL_INBOUND_SECRET` ; pièces jointes JSON/CSV parsées (CSV tronqué à 200 lignes), PDF/images
+signalés non supportés ; 1 Mo max par pièce jointe, 4 Mo par mail (limite plateforme Vercel) ;
+le rate limit de l'adaptateur s'applique.
 
 ## 5. Rappels sécurité (avant de rendre le repo public)
 

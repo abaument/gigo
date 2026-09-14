@@ -101,8 +101,11 @@ export function LogsTable({
                 <DurationBadge ms={log.totalDuration} />
               </div>
               <div className="hidden sm:block sm:col-span-2 min-w-0">
-                <span className="text-xs text-sand font-mono truncate block">
-                  {log.provider ?? '—'}
+                <span
+                  className="text-xs text-sand font-mono truncate block"
+                  title={log.provider ?? undefined}
+                >
+                  {log.modelName ?? log.provider ?? '—'}
                 </span>
               </div>
               <div className="col-span-2 sm:col-span-3 max-sm:order-4 sm:text-right">

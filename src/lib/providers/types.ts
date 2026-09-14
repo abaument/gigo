@@ -39,6 +39,7 @@ export interface TransformProvider {
 export type ProviderErrorCode =
   | 'TIMEOUT'
   | 'RATE_LIMIT'
+  | 'QUOTA_EXCEEDED'
   | 'MAX_TOKENS'
   | 'AUTH'
   | 'API_ERROR'

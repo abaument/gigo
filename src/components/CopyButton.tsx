@@ -7,6 +7,8 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useCallback, useState } from 'react';
 
 export function useCopy(text: string) {
@@ -54,10 +56,13 @@ interface CopyButtonProps {
 export function CopyButton({
   text,
   variant = 'icon',
-  label = 'Copy',
-  copiedLabel = 'Copied!',
+  label,
+  copiedLabel,
   className = '',
 }: CopyButtonProps) {
+  const tCommon = useTranslations('common');
+  const copyLabel = label ?? tCommon('copy');
+  const copiedText = copiedLabel ?? tCommon('copied');
   const { copied, copy } = useCopy(text);
 
   if (variant === 'label') {
@@ -72,12 +77,12 @@ export function CopyButton({
         {copied ? (
           <>
             <CheckIcon className="w-3.5 h-3.5 text-sage" />
-            {copiedLabel}
+            {copiedText}
           </>
         ) : (
           <>
             <ClipboardIcon className="w-3.5 h-3.5" />
-            {label}
+            {copyLabel}
           </>
         )}
       </button>
@@ -90,7 +95,7 @@ export function CopyButton({
       onClick={copy}
       className={`p-2 text-taupe hover:text-amber hover:bg-roast rounded-lg border border-bark
                transition-colors shrink-0 ${className}`}
-      title={copied ? copiedLabel : label}
+      title={copied ? copiedText : copyLabel}
     >
       {copied ? (
         <CheckIcon className="w-5 h-5 text-sage" />

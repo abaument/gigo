@@ -37,9 +37,11 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
 
   if (!adapter) notFound();
 
+  const emailInboxConfigured = Boolean(process.env.NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS);
   const inboundEmailAddress = buildInboundAddress(
     process.env.NEXT_PUBLIC_EMAIL_INBOUND_ADDRESS,
-    adapter.id
+    adapter.id,
+    adapter.emailIngestToken
   );
 
   return (
@@ -76,10 +78,10 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
         />
       </div>
 
-      {/* Inbound email address (only when the operator configured an inbox) */}
-      {inboundEmailAddress && (
+      {/* Inbound email (only when the operator configured an inbox) */}
+      {emailInboxConfigured && (
         <div className="animate-slide-up">
-          <EmailEndpointCard address={inboundEmailAddress} />
+          <EmailEndpointCard adapterId={adapter.id} address={inboundEmailAddress} />
         </div>
       )}
 
@@ -106,6 +108,7 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
           adapterId={adapter.id}
           hasDestination={Boolean(adapter.destinationUrl)}
           webhookSecret={adapter.webhookSecret}
+          hasLearnings={adapter.learningEnabled && learnings.some((l) => l.enabled)}
         />
       </div>
 

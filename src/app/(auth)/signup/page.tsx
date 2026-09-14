@@ -54,7 +54,7 @@ export default function SignUpPage() {
 
       setSuccess(true);
     } catch {
-      setError('An unexpected error occurred');
+      setError(t('unexpectedError'));
       setLoading(false);
     }
   };
