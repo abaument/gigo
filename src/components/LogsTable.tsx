@@ -63,8 +63,8 @@ export function LogsTable({
 
   return (
     <div className="card overflow-hidden">
-      {/* Header */}
-      <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-bark text-[11px] font-accent uppercase tracking-wider text-taupe">
+      {/* Header — hidden on mobile where rows use a compact stacked layout */}
+      <div className="hidden sm:grid grid-cols-12 gap-3 px-5 py-3 border-b border-bark text-[11px] font-accent uppercase tracking-wider text-taupe">
         <div className="col-span-2">{t('colStatus')}</div>
         <div className="col-span-3">{t('colTrace')}</div>
         <div className="col-span-2">{t('colDuration')}</div>
@@ -79,9 +79,9 @@ export function LogsTable({
             <button
               type="button"
               onClick={() => onSelect(log)}
-              className="w-full grid grid-cols-12 gap-3 px-5 py-3 items-center text-left table-row-hover"
+              className="w-full grid grid-cols-2 sm:grid-cols-12 gap-x-3 gap-y-1.5 px-4 sm:px-5 py-3 items-center text-left table-row-hover"
             >
-              <div className="col-span-2 flex items-center gap-1.5 flex-wrap">
+              <div className="col-span-1 sm:col-span-2 max-sm:order-1 flex items-center gap-1.5 flex-wrap">
                 <StatusBadge log={log} />
                 {log.isTest && (
                   <span className="badge bg-amber/15 text-amber border border-amber/30 text-[10px] px-1.5 py-0">
@@ -94,18 +94,18 @@ export function LogsTable({
                   </span>
                 )}
               </div>
-              <div className="col-span-3">
+              <div className="col-span-2 sm:col-span-3 max-sm:order-3 min-w-0">
                 <code className="text-xs text-taupe truncate block">{log.id}</code>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2 max-sm:order-2 text-right sm:text-left">
                 <DurationBadge ms={log.totalDuration} />
               </div>
-              <div className="col-span-2">
+              <div className="hidden sm:block sm:col-span-2 min-w-0">
                 <span className="text-xs text-sand font-mono truncate block">
                   {log.provider ?? '—'}
                 </span>
               </div>
-              <div className="col-span-3 text-right">
+              <div className="col-span-2 sm:col-span-3 max-sm:order-4 sm:text-right">
                 <span className="text-xs text-clay font-accent">
                   {formatTimestamp(log.createdAt, locale)}
                 </span>

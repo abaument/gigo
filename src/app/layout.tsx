@@ -33,14 +33,14 @@ export default async function RootLayout({
           <ToastProvider>
             <div className="min-h-screen flex flex-col relative">
               <header className="border-b border-bark bg-coffee/80 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 py-4">
-                  <nav className="flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-4 group">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+                  <nav className="flex items-center justify-between gap-3">
+                    <Link href="/" className="flex items-center gap-3 sm:gap-4 group min-w-0">
                       {/* GIGO Logo */}
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber via-gold to-copper flex items-center justify-center shadow-lg group-hover:shadow-[0_0_30px_rgba(212,168,83,0.4)] transition-all duration-300">
+                      <div className="relative shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber via-gold to-copper flex items-center justify-center shadow-lg group-hover:shadow-[0_0_30px_rgba(212,168,83,0.4)] transition-all duration-300">
                           <svg
-                            className="w-6 h-6 text-espresso"
+                            className="w-5 h-5 sm:w-6 sm:h-6 text-espresso"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -55,17 +55,23 @@ export default async function RootLayout({
                         </div>
                         <div className="absolute inset-0 rounded-xl bg-amber/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
-                      <div>
-                        <h1 className="font-display text-2xl font-bold gigo-logo tracking-tight">
+                      <div className="min-w-0">
+                        <h1 className="font-display text-xl sm:text-2xl font-bold gigo-logo tracking-tight">
                           GIG<span>O</span>
                         </h1>
-                        <p className="text-xs text-taupe font-accent tracking-wider">
+                        <p className="text-xs text-taupe font-accent tracking-wider hidden sm:block">
                           {t('tagline')}
                         </p>
                       </div>
                     </Link>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                      <Link
+                        href="/how-to"
+                        className="text-sm text-taupe hover:text-amber font-accent transition-colors hidden md:block"
+                      >
+                        {t('howTo')}
+                      </Link>
                       <Link
                         href="/adapters/new"
                         className="btn-primary text-sm flex items-center gap-2"
@@ -85,14 +91,20 @@ export default async function RootLayout({
               <main className="flex-1 relative z-10">{children}</main>
 
               <footer className="border-t border-bark bg-coffee/60 py-6 relative z-10">
-                <div className="max-w-7xl mx-auto px-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-display text-lg font-bold text-cream">
                         GIG<span className="text-amber">O</span>
                       </span>
                       <span className="text-taupe text-sm font-accent">{t('tagline')}</span>
                     </div>
+                    <Link
+                      href="/how-to"
+                      className="text-sm text-taupe hover:text-amber font-accent transition-colors"
+                    >
+                      {t('howTo')}
+                    </Link>
                   </div>
                 </div>
               </footer>

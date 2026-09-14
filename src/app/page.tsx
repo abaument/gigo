@@ -28,10 +28,10 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="flex items-center justify-between gap-4 mb-8 animate-fade-in">
         <div>
-          <h1 className="font-display text-4xl text-cream mb-1">{t('title')}</h1>
+          <h1 className="font-display text-3xl sm:text-4xl text-cream mb-1">{t('title')}</h1>
           <p className="text-taupe font-accent">{t('subtitle')}</p>
         </div>
         <Link

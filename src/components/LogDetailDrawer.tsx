@@ -146,7 +146,7 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
               </div>
 
               {/* Metadata */}
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <MetaRow label={t('colTime')} value={formatTimestamp(log.createdAt, locale)} />
                 <MetaRow label={t('provider')} value={log.provider ?? '—'} />
                 <MetaRow label={t('colModel')} value={log.modelName ?? '—'} />

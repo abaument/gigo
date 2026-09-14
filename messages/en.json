@@ -33,7 +33,8 @@
     "getStarted": "Get started",
     "signOut": "Sign out",
     "tagline": "Garbage In, Gold Out",
-    "settings": "Settings"
+    "settings": "Settings",
+    "howTo": "How to"
   },
   "dashboard": {
     "title": "Adapters",
@@ -263,5 +264,30 @@
     "keyDeleted": "Key deleted",
     "keyDeleteError": "Could not delete the key",
     "securityNote": "Without a key for a provider, adapters using it will return an authentication error. If the platform operator configured a server key it acts as a fallback; your own key always takes precedence."
+  },
+  "howTo": {
+    "title": "How it works",
+    "subtitle": "From zero to a production adapter, in six steps",
+    "s1Title": "Add your AI key",
+    "s1Body": "GIGO transforms your data with the AI engine of your choice (OpenAI or Anthropic), using YOUR API key: you keep full control over usage and billing. The key is encrypted and never shown in clear text again.",
+    "s1Link": "Open Settings",
+    "s1LinkSuffix": "and paste the key of the provider you want to use.",
+    "s2Title": "Create an adapter",
+    "s2Body": "One adapter = one output format. You configure no rules: just paste an example of the JSON your destination tool expects —",
+    "s2Body2": "— or paste the target API's documentation in the “From Docs (AI)” tab and the format is inferred automatically. Then pick the AI engine and give it a name.",
+    "s3Title": "Test in the playground",
+    "s3Body": "On the adapter page, paste “dirty” data into the playground and run it: you see the transformed output, latency, token usage and the model used. Iterate on your format example until the result is exactly right.",
+    "s4Title": "Plug in your data source",
+    "s4Body": "Each adapter exposes a unique webhook URL: configure it in the source tool (form, e-commerce, CRM…) or call it directly. The X-Webhook-Secret header protects the endpoint, and each adapter has its own per-minute rate limit.",
+    "s4Email": "You can also send or forward an email to the adapter's dedicated address (shown on its page): the email body and its JSON/CSV attachments go through the same pipeline.",
+    "s5Title": "Deliver to the destination",
+    "s5Body": "Configure the destination URL and its authentication (Bearer, API key, Basic — credentials are AES-256-GCM encrypted): every transformed payload is delivered automatically. Without a destination, the webhook response carries the result.",
+    "s6Title": "Monitor and replay",
+    "s6Body": "The activity log traces every transformation: input, output, duration, tokens, errors. Filter, inspect the details, and replay a failed transformation in one click after fixing — without asking the source to resend.",
+    "tipsTitle": "Good practices",
+    "tip1": "Use realistic values in your format example: they teach the AI the expected types (“4990” → number, “jean@example.com” → email).",
+    "tip2": "Always enable the webhook secret before exposing a URL to the internet — it's generated in one click on the adapter page.",
+    "tip3": "Unsure about a mapping? The playground is frustration-free: test your edge cases there before wiring the real source.",
+    "cta": "Create my first adapter"
   }
 }

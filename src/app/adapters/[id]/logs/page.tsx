@@ -26,7 +26,7 @@ export default async function AdapterLogsPage({ params }: { params: { id: string
   if (!adapter) notFound();
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       {/* Top bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in">
         <div>
@@ -37,7 +37,7 @@ export default async function AdapterLogsPage({ params }: { params: { id: string
             ← {t('backToAdapter')}
           </Link>
           <div className="flex items-center gap-3 mt-1">
-            <h1 className="font-display text-3xl text-cream">{adapter.name}</h1>
+            <h1 className="font-display text-2xl sm:text-3xl text-cream break-words">{adapter.name}</h1>
             <span className={adapter.isActive ? 'badge-success' : 'badge-error'}>
               <span className="relative flex h-2 w-2 mr-1.5">
                 {adapter.isActive && (

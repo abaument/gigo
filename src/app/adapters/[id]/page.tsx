@@ -40,12 +40,12 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between gap-6 flex-wrap animate-fade-in">
         <div className="min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="font-display text-3xl text-cream truncate">{adapter.name}</h1>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <h1 className="font-display text-2xl sm:text-3xl text-cream truncate min-w-0">{adapter.name}</h1>
             <span className={adapter.isActive ? 'badge-success' : 'badge-error'}>
               {adapter.isActive ? tCommon('active') : tCommon('inactive')}
             </span>

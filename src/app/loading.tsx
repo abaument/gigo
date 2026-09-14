@@ -2,7 +2,7 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard';
 
 export default function DashboardLoading() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="h-10 w-64 rounded-lg loading-shimmer bg-coffee/60 mb-8" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SkeletonCard className="h-24" />

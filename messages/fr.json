@@ -33,7 +33,8 @@
     "getStarted": "Commencer",
     "signOut": "Déconnexion",
     "tagline": "Garbage In, Gold Out",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "howTo": "Guide"
   },
   "dashboard": {
     "title": "Adaptateurs",
@@ -263,5 +264,30 @@
     "keyDeleted": "Clé supprimée",
     "keyDeleteError": "Impossible de supprimer la clé",
     "securityNote": "Sans clé pour un fournisseur, les adaptateurs qui l'utilisent renverront une erreur d'authentification. Si l'opérateur de la plateforme a configuré une clé serveur, elle sert de secours ; votre clé, si présente, est toujours prioritaire."
+  },
+  "howTo": {
+    "title": "Comment ça marche",
+    "subtitle": "De zéro à un adaptateur en production, en six étapes",
+    "s1Title": "Ajoutez votre clé d'IA",
+    "s1Body": "GIGO transforme vos données avec le moteur d'IA de votre choix (OpenAI ou Anthropic), en utilisant VOTRE clé d'API : vous gardez la maîtrise de votre consommation et de votre facturation. La clé est chiffrée et n'est jamais réaffichée en clair.",
+    "s1Link": "Ouvrez les Paramètres",
+    "s1LinkSuffix": "et collez la clé du fournisseur que vous voulez utiliser.",
+    "s2Title": "Créez un adaptateur",
+    "s2Body": "Un adaptateur = un format de sortie. Vous ne configurez aucune règle : vous collez simplement un exemple du JSON que votre outil de destination attend —",
+    "s2Body2": "— ou vous collez la documentation de l'API cible dans l'onglet « From Docs (AI) », et le format est déduit automatiquement. Choisissez ensuite le moteur d'IA et donnez un nom.",
+    "s3Title": "Testez dans le playground",
+    "s3Body": "Sur la page de l'adaptateur, collez des données « sales » dans le playground et lancez : vous voyez la sortie transformée, la latence, les tokens consommés et le modèle utilisé. Itérez sur votre exemple de format jusqu'à ce que le résultat soit exactement celui attendu.",
+    "s4Title": "Branchez votre source de données",
+    "s4Body": "Chaque adaptateur expose une URL webhook unique : configurez-la dans l'outil source (formulaire, e-commerce, CRM…) ou appelez-la directement. Le secret X-Webhook-Secret protège l'endpoint, et chaque adaptateur a sa limite d'appels par minute.",
+    "s4Email": "Vous pouvez aussi envoyer ou transférer un email à l'adresse dédiée de l'adaptateur (affichée sur sa page) : le contenu du mail et ses pièces jointes JSON/CSV passent par le même pipeline.",
+    "s5Title": "Livrez à destination",
+    "s5Body": "Configurez l'URL de destination et sa méthode d'authentification (Bearer, clé d'API, Basic — les identifiants sont chiffrés en AES-256-GCM) : chaque donnée transformée y est livrée automatiquement. Sans destination, la réponse du webhook contient le résultat.",
+    "s6Title": "Surveillez et rejouez",
+    "s6Body": "Le journal d'activité trace chaque transformation : entrée, sortie, durée, tokens, erreurs. Filtrez, inspectez le détail, et rejouez en un clic une transformation échouée après correction — sans redemander les données à la source.",
+    "tipsTitle": "Bonnes pratiques",
+    "tip1": "Mettez des valeurs réalistes dans votre exemple de format : elles guident l'IA sur le type attendu (« 4990 » → nombre, « jean@exemple.fr » → email).",
+    "tip2": "Activez toujours le secret webhook avant d'exposer une URL sur Internet — il se génère en un clic sur la page de l'adaptateur.",
+    "tip3": "Un doute sur un mapping ? Le playground est gratuit en frustration : testez-y vos cas limites avant de brancher la source réelle.",
+    "cta": "Créer mon premier adaptateur"
   }
 }

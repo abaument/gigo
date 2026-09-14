@@ -76,8 +76,10 @@ export function WebhookEndpointCard({
       <h2 className="font-accent font-semibold text-cream text-lg mb-1">{t('endpointTitle')}</h2>
       <p className="text-xs text-clay font-accent mb-4">{t('endpointHelp')}</p>
 
-      <div className="flex items-center gap-2 mb-5">
-        <code className="code-block flex-1 py-2.5 px-4 text-xs truncate">{url}</code>
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <code className="code-block basis-full sm:basis-0 sm:flex-1 min-w-0 py-2.5 px-4 text-xs truncate">
+          {url}
+        </code>
         <CopyButton text={url} />
         <CopyButton
           text={curl}
