@@ -8,9 +8,15 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  provider = "postgresql"
+  // Runtime: pooled connection. On serverless (Vercel) this MUST be the
+  // transaction-mode pooler (port 6543) with `?pgbouncer=true&connection_limit=1`
+  // — session mode (5432) holds one Postgres connection per lambda and
+  // exhausts the pool ("max clients reached in session mode").
+  url = env("DATABASE_URL")
+  // Migrations: a connection that supports advisory locks (session mode
+  // pooler on 5432, or a direct connection). Only used by the Prisma CLI.
+  directUrl = env("DIRECT_URL")
 }
 
 // =============================================================================

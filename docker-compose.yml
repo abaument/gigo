@@ -4,9 +4,9 @@
 #   2. docker compose up -d
 #
 # Auth relies on a Supabase project (free tier works): set the three
-# SUPABASE_* variables in .env. DATABASE_URL can point either to your
-# Supabase Postgres or to the bundled `db` service below
-# (postgresql://gigo:gigo@db:5432/gigo).
+# SUPABASE_* variables in .env. DATABASE_URL and DIRECT_URL can point either
+# to your Supabase Postgres or to the bundled `db` service below — with the
+# bundled one, set BOTH to postgresql://gigo:gigo@db:5432/gigo.
 
 services:
   db:

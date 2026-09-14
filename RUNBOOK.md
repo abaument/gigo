@@ -22,7 +22,8 @@ bun install
 | `NEXT_PUBLIC_SUPABASE_URL` | Dashboard Supabase → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | idem |
 | `SUPABASE_SERVICE_ROLE_KEY` | idem |
-| `DATABASE_URL` | Actuellement en **connexion directe** `db.<ref>.supabase.co:5432` (le pooler s'était désenregistré après une pause). Les caractères spéciaux du mot de passe doivent être encodés (`*` → `%2A`) |
+| `DATABASE_URL` | **Pooler port 6543 (mode transaction)** + `?pgbouncer=true&connection_limit=1`. Obligatoire en serverless : le port 5432 (mode session) garde une connexion par fonction et sature le pool de 15 (`max clients reached in session mode`). Caractères spéciaux du mot de passe encodés (`?` → `%3F`, espace → `%20`) |
+| `DIRECT_URL` | Même URL en **port 5432** — utilisée uniquement par le CLI Prisma pour les migrations (verrous consultatifs, impossibles en mode transaction) |
 | `OPENAI_API_KEY` | **Optionnelle depuis le BYOK** : chaque utilisateur saisit SA clé dans `/settings` (chiffrée en base, prioritaire). L'env var ne sert que de clé de secours serveur |
 | `ANTHROPIC_API_KEY` | Idem — optionnelle, secours serveur uniquement |
 | `ENCRYPTION_KEY` | 16+ caractères — **l'app refuse de démarrer sans** |
@@ -95,6 +96,8 @@ curl -X POST http://localhost:3000/api/webhook/<ADAPTER_ID> \
 | `RATE_LIMIT — OpenAI rate limit exceeded` dès le 1er appel | **Crédits OpenAI épuisés** (le 429 d'OpenAI couvre aussi insufficient_quota) | Recharger le compte sur platform.openai.com → Billing |
 | Données disparues juste après un « Restore » Supabase | La restauration écrase la base pendant plusieurs minutes | Attendre la fin du restore, puis relancer `bun run db:deploy` + `bun scripts/seed-demo.ts` (idempotent) |
 | `429 RATE_LIMITED` sur le playground | Garde-fou : 20 tests/min/utilisateur | Attendre 1 min (ou le dire au jury : « c'est une protection, elle marche ») |
+| `max clients reached in session mode - pool_size: 15` (pages en erreur « Server Components render ») | `DATABASE_URL` pointe sur le pooler **5432** (mode session) : chaque fonction serverless garde une connexion | Passer `DATABASE_URL` sur le port **6543** + `?pgbouncer=true&connection_limit=1` et définir `DIRECT_URL` sur 5432, puis Redeploy. Le pool se vide en quelques minutes |
+| `prisma migrate deploy` échoue avec la même erreur | Le pool session est saturé par les fonctions qui fuient | Corriger `DATABASE_URL` en prod d'abord, attendre que le pool se vide, puis relancer |
 | `command not found: bun` | PATH du shell | `export PATH="$HOME/.bun/bin:$PATH"` ou nouveau terminal |
 | Le build casse en CI/Docker sans `.env` | Normal : des valeurs factices sont injectées (voir `ci.yml` / `Dockerfile`) | Rien à faire |
 
