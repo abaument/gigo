@@ -40,6 +40,9 @@ export default function SignUpPage() {
           data: {
             full_name: name,
           },
+          // Confirmation emails must come back to THIS deployment (prod,
+          // preview or localhost), never to the project-wide Site URL.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 

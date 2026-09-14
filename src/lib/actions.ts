@@ -84,6 +84,7 @@ export async function signUp(formData: FormData) {
       data: {
         full_name: name,
       },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/auth/callback`,
     },
   });
 

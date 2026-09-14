@@ -12,13 +12,14 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  // surfaces auth-callback failures (e.g. expired confirmation links)
+  const [error, setError] = useState(searchParams.get('error') ?? '');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
