@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Source+Code+Pro:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -261,13 +261,13 @@ body::before {
   }
 }
 
-/* GIGO Logo text effect */
+/* GIGO wordmark — "GIG" in cream, the "O" in amber (brand kit) */
 .gigo-logo {
-  background: linear-gradient(135deg, var(--amber) 0%, var(--gold) 50%, var(--copper) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 2px 4px rgba(212, 168, 83, 0.3));
+  color: var(--cream);
+  letter-spacing: -0.02em;
+}
+.gigo-logo span {
+  color: var(--amber);
 }
 
 /* Fade in animation */

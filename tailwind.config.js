@@ -33,7 +33,7 @@ module.exports = {
         sky: '#6b8fad',
       },
       fontFamily: {
-        display: ['Playfair Display', 'Georgia', 'serif'],
+        display: ['Space Grotesk', 'Helvetica Neue', 'sans-serif'],
         body: ['Source Code Pro', 'monospace'],
         accent: ['DM Sans', 'system-ui', 'sans-serif'],
       },

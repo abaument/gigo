@@ -15,9 +15,6 @@ import { ToastProvider } from '@/components/ui/ToastProvider';
 export const metadata: Metadata = {
   title: 'GIGO - Garbage In, Gold Out',
   description: 'Transform chaotic JSON into perfectly structured data with AI',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default async function RootLayout({
@@ -60,7 +57,7 @@ export default async function RootLayout({
                       </div>
                       <div>
                         <h1 className="font-display text-2xl font-bold gigo-logo tracking-tight">
-                          GIGO
+                          GIG<span>O</span>
                         </h1>
                         <p className="text-xs text-taupe font-accent tracking-wider">
                           {t('tagline')}
@@ -91,7 +88,9 @@ export default async function RootLayout({
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <span className="font-display text-lg font-bold text-amber">GIGO</span>
+                      <span className="font-display text-lg font-bold text-cream">
+                        GIG<span className="text-amber">O</span>
+                      </span>
                       <span className="text-taupe text-sm font-accent">{t('tagline')}</span>
                     </div>
                   </div>
