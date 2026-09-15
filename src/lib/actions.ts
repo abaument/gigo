@@ -45,15 +45,29 @@ export async function getCurrentUser() {
   });
 
   if (!dbUser) {
-    // Create user record on first login
-    dbUser = await db.user.create({
-      data: {
-        id: user.id,
-        email: user.email!,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0],
-        avatarUrl: user.user_metadata?.avatar_url,
-      },
-    });
+    // First login. Upsert: two concurrent requests (typical on a fresh
+    // session hitting several server components) must not race to create.
+    try {
+      dbUser = await db.user.upsert({
+        where: { id: user.id },
+        update: {},
+        create: {
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          avatarUrl: user.user_metadata?.avatar_url,
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code !== 'P2002') throw error;
+      // The email already exists under an old auth id (account deleted and
+      // re-provisioned in Supabase). Re-key the row: FKs cascade on update,
+      // so the user keeps their adapters, logs and keys.
+      dbUser = await db.user.update({
+        where: { email: user.email! },
+        data: { id: user.id },
+      });
+    }
   }
 
   return dbUser;
@@ -167,6 +181,9 @@ export async function createAdapter(input: CreateAdapterInput) {
         name: data.name,
         description: data.description || null,
         targetSchema: JSON.stringify(JSON.parse(data.targetSchema), null, 2),
+        samplePayload: data.samplePayload
+          ? JSON.stringify(JSON.parse(data.samplePayload), null, 2)
+          : null,
         schemaSourceType: data.schemaSourceType,
         schemaSourceUrl: data.schemaSourceUrl || null,
         modelProvider: data.modelProvider,
@@ -215,7 +232,10 @@ export async function getAdapters(options?: { take?: number; skip?: number }) {
 /**
  * Get a single adapter by ID (with ownership verification).
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getAdapterById(id: string) {
+  if (!UUID_RE.test(id)) return null;
   const user = await getCurrentUser();
   if (!user) return null;
 
@@ -286,6 +306,11 @@ export async function updateAdapter(id: string, input: UpdateAdapterInput) {
     if (data.description !== undefined) updateData.description = data.description || null;
     if (data.targetSchema !== undefined) {
       updateData.targetSchema = JSON.stringify(JSON.parse(data.targetSchema), null, 2);
+    }
+    if (data.samplePayload !== undefined) {
+      updateData.samplePayload = data.samplePayload
+        ? JSON.stringify(JSON.parse(data.samplePayload), null, 2)
+        : null;
     }
     if (data.schemaSourceType !== undefined) updateData.schemaSourceType = data.schemaSourceType;
     if (data.schemaSourceUrl !== undefined) updateData.schemaSourceUrl = data.schemaSourceUrl || null;
@@ -407,6 +432,7 @@ export async function duplicateAdapter(id: string) {
         name: `${existing.name} (copy)`,
         description: existing.description,
         targetSchema: existing.targetSchema,
+        samplePayload: existing.samplePayload,
         schemaSourceType: existing.schemaSourceType,
         schemaSourceUrl: existing.schemaSourceUrl,
         modelProvider: existing.modelProvider,
@@ -556,6 +582,7 @@ export interface AdapterStats {
  * the authenticated user's adapters (dashboard).
  */
 export async function getAdapterStats(adapterId?: string): Promise<AdapterStats | null> {
+  if (adapterId && !UUID_RE.test(adapterId)) return null;
   const user = await getCurrentUser();
   if (!user) return null;
 
@@ -639,6 +666,7 @@ export async function getAdapterLogs(
   adapterId: string,
   query?: GetLogsQuery
 ): Promise<{ logs: LogListItem[]; nextCursor: string | null }> {
+  if (!UUID_RE.test(adapterId)) return { logs: [], nextCursor: null };
   const user = await getCurrentUser();
   if (!user) return { logs: [], nextCursor: null };
 
@@ -793,6 +821,7 @@ export async function generateSchemaFromDocUrl(url: string) {
 
 /** The adapter's stored learnings, owner-scoped, newest first. */
 export async function getAdapterLearnings(adapterId: string) {
+  if (!UUID_RE.test(adapterId)) return [];
   const user = await getCurrentUser();
   if (!user) return [];
 

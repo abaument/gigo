@@ -110,7 +110,9 @@
     "creating": "Creating...",
     "saveSubmit": "Save changes",
     "saving": "Saving...",
-    "schemaRequired": "A valid JSON target schema is required"
+    "schemaRequired": "A valid JSON target schema is required",
+    "samplePayloadLabel": "Sample payload (optional)",
+    "samplePayloadHelp": "An example of the raw “dirty” data as the source sends it. It pre-fills the adapter's playground and the copyable cURL."
   },
   "adapterDetail": {
     "playground": "Playground",

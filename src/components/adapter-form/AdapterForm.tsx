@@ -12,6 +12,7 @@ import { createAdapter, updateAdapter } from '@/lib/actions';
 import { DEFAULT_MODELS } from '@/lib/providers/models';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Spinner } from '@/components/ui/Spinner';
+import { JsonEditor } from '@/components/JsonEditor';
 import { ModelPicker } from './ModelPicker';
 import { SchemaEditor } from './SchemaEditor';
 import { DestinationConfig, type DestinationValues } from './DestinationConfig';
@@ -20,6 +21,7 @@ export interface AdapterFormValues extends DestinationValues {
   name: string;
   description: string;
   targetSchema: string;
+  samplePayload: string;
   schemaSourceType: 'manual' | 'documentation' | 'url';
   schemaSourceUrl: string;
   modelProvider: 'openai' | 'anthropic';
@@ -31,6 +33,7 @@ const DEFAULT_VALUES: AdapterFormValues = {
   name: '',
   description: '',
   targetSchema: '',
+  samplePayload: '',
   schemaSourceType: 'manual',
   schemaSourceUrl: '',
   modelProvider: 'openai',
@@ -75,12 +78,14 @@ export function AdapterForm({ mode, adapterId, initialValues, maskedAuthValue }:
     ...initialValues,
   });
   const [schemaValid, setSchemaValid] = useState(Boolean(initialValues?.targetSchema));
+  const [sampleValid, setSampleValid] = useState(true);
   const [error, setError] = useState('');
 
   const set = <K extends keyof AdapterFormValues>(key: K, value: AdapterFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
-  const canSubmit = values.name.trim().length > 0 && schemaValid && !isPending;
+  const samplePayloadOk = values.samplePayload.trim() === '' || sampleValid;
+  const canSubmit = values.name.trim().length > 0 && schemaValid && samplePayloadOk && !isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +100,7 @@ export function AdapterForm({ mode, adapterId, initialValues, maskedAuthValue }:
       name: values.name,
       description: values.description || undefined,
       targetSchema: values.targetSchema,
+      samplePayload: values.samplePayload.trim(),
       schemaSourceType: values.schemaSourceType,
       schemaSourceUrl: values.schemaSourceUrl || undefined,
       modelProvider: values.modelProvider,
@@ -202,6 +208,17 @@ export function AdapterForm({ mode, adapterId, initialValues, maskedAuthValue }:
             }));
           }}
         />
+        <div className="mt-6 pt-5 border-t border-bark">
+          <label className="label">{t('samplePayloadLabel')}</label>
+          <p className="text-xs text-clay font-accent mb-3">{t('samplePayloadHelp')}</p>
+          <JsonEditor
+            value={values.samplePayload}
+            onChange={(v) => set('samplePayload', v)}
+            onValidChange={setSampleValid}
+            minHeight="min-h-[8rem]"
+            placeholder={'{\n  "nom_du_contact": "MARTIN", ...\n}'}
+          />
+        </div>
       </section>
 
       {/* 3. AI model */}

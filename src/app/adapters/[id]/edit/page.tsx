@@ -23,6 +23,7 @@ export default async function EditAdapterPage({ params }: { params: { id: string
     name: adapter.name,
     description: adapter.description ?? '',
     targetSchema: adapter.targetSchema,
+    samplePayload: adapter.samplePayload ?? '',
     schemaSourceType: (adapter.schemaSourceType as AdapterFormValues['schemaSourceType']) ?? 'manual',
     schemaSourceUrl: adapter.schemaSourceUrl ?? '',
     modelProvider: (adapter.modelProvider as AdapterFormValues['modelProvider']) ?? 'openai',

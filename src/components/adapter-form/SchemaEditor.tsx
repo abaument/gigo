@@ -42,10 +42,13 @@ export function SchemaEditor({
     schemaName?: string;
     description?: string;
     error?: string;
-  }) => {
+  }, source: 'documentation' | 'url', url?: string) => {
     if (result.success && result.schema) {
       onChange(result.schema);
       onMeta?.({ name: result.schemaName, description: result.description });
+      // provenance is recorded only on success — a failed attempt followed
+      // by manual editing must not persist schema_source_type='url'
+      onSourceChange?.(source, url);
       setTab('manual');
     } else {
       setGenerateError(result.error || 'Generation failed');
@@ -56,18 +59,26 @@ export function SchemaEditor({
     if (!docsText.trim()) return;
     setIsGenerating(true);
     setGenerateError('');
-    onSourceChange?.('documentation');
-    applyGenerated(await generateSchema(docsText));
-    setIsGenerating(false);
+    try {
+      applyGenerated(await generateSchema(docsText), 'documentation');
+    } catch {
+      setGenerateError('Generation failed');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleGenerateFromUrl = async () => {
     if (!docsUrl.trim()) return;
     setIsGenerating(true);
     setGenerateError('');
-    onSourceChange?.('url', docsUrl);
-    applyGenerated(await generateSchemaFromDocUrl(docsUrl));
-    setIsGenerating(false);
+    try {
+      applyGenerated(await generateSchemaFromDocUrl(docsUrl), 'url', docsUrl);
+    } catch {
+      setGenerateError('Generation failed');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

@@ -73,6 +73,9 @@ model Adapter {
 
   // Schema Configuration
   targetSchema       String  @map("target_schema") // JSON string of expected output
+  /// Representative "dirty" input for this adapter. Pre-fills the
+  /// playground so trying the adapter needs no hand-written payload.
+  samplePayload      String? @map("sample_payload")
   schemaSourceType   String? @map("schema_source_type") // "manual", "documentation", "url"
   schemaSourceUrl    String? @map("schema_source_url") // Original doc URL if applicable
 

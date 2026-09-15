@@ -74,7 +74,7 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
         <WebhookEndpointCard
           adapterId={adapter.id}
           webhookSecret={adapter.webhookSecret}
-          sampleBody={'{"example": "payload"}'}
+          sampleBody={adapter.samplePayload ?? '{"example": "payload"}'}
         />
       </div>
 
@@ -108,6 +108,7 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
           adapterId={adapter.id}
           hasDestination={Boolean(adapter.destinationUrl)}
           webhookSecret={adapter.webhookSecret}
+          sampleInput={adapter.samplePayload ?? undefined}
           hasLearnings={adapter.learningEnabled && learnings.some((l) => l.enabled)}
         />
       </div>

@@ -38,6 +38,12 @@ export const createAdapterSchema = z.object({
     .min(1, 'Target schema is required')
     .max(100_000, 'Target schema is too large')
     .refine(isValidJson, { message: 'Target schema must be valid JSON' }),
+  /** Representative dirty input; pre-fills the playground. */
+  samplePayload: z
+    .string()
+    .max(100_000, 'Sample payload is too large')
+    .refine((v) => v === '' || isValidJson(v), { message: 'Sample payload must be valid JSON' })
+    .optional(),
   schemaSourceType: schemaSourceEnum.default('manual'),
   schemaSourceUrl: z.string().url().max(2000).optional(),
   modelProvider: providerEnum.default('openai'),
@@ -79,7 +85,7 @@ export const getLogsQuerySchema = z.object({
   status: z.enum(['all', 'success', 'error']).default('all'),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
-  traceId: z.string().optional(),
+  traceId: z.string().uuid().optional(),
   includeTests: z.boolean().default(true),
 });
 

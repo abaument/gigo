@@ -24,6 +24,8 @@ export const maxDuration = 60;
 const MAX_PAYLOAD_BYTES = 1_048_576; // 1 MB
 const TESTS_PER_MINUTE = 20;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const testRequestSchema = z.object({
   input: z.unknown(),
   forward: z.boolean().default(false),
@@ -48,7 +50,13 @@ export async function POST(
       );
     }
 
-    // 2. Ownership
+    // 2. Ownership (non-UUID ids would make Prisma throw P2023 -> 500)
+    if (!UUID_RE.test(params.id)) {
+      return NextResponse.json(
+        { success: false, error: 'Adapter not found', code: 'ADAPTER_NOT_FOUND' },
+        { status: 404 }
+      );
+    }
     const adapter = await db.adapter.findFirst({
       where: { id: params.id, userId: user.id },
     });

@@ -110,7 +110,9 @@
     "creating": "Création...",
     "saveSubmit": "Enregistrer les modifications",
     "saving": "Enregistrement...",
-    "schemaRequired": "Un schéma cible JSON valide est requis"
+    "schemaRequired": "Un schéma cible JSON valide est requis",
+    "samplePayloadLabel": "Payload d'exemple (optionnel)",
+    "samplePayloadHelp": "Un exemple de données « sales » telles que la source les envoie. Il pré-remplit le playground de l'adaptateur et le cURL copiable."
   },
   "adapterDetail": {
     "playground": "Playground",
