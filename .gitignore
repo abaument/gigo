@@ -44,3 +44,7 @@ prisma/dev.db-journal
 # IDE
 .idea
 .vscode
+
+# iCloud sync conflict copies ("file 2.ts", "folder 2/")
+*\ 2
+*\ 2.*

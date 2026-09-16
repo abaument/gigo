@@ -34,17 +34,9 @@ export default async function AppLayout({
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber via-gold to-copper flex items-center justify-center shadow-lg group-hover:shadow-[0_0_30px_rgba(212,168,83,0.4)] transition-all duration-300">
                   <svg
                     className="w-5 h-5 sm:w-6 sm:h-6 text-espresso"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
+                    viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.554 19.5Q11.88 19.5 11.454 19.073Q11.027 18.647 11.027 17.973V13.332Q11.027 12.898 10.623 12.898H8.901V11.102H10.623Q11.027 11.102 11.027 10.668V6.027Q11.027 5.353 11.454 4.927Q11.88 4.5 12.554 4.5H15.099V6.117H13.257Q12.853 6.117 12.853 6.566V10.668Q12.853 11.177 12.531 11.521Q12.21 11.865 11.686 11.865H11.446V12.135H11.686Q12.21 12.135 12.531 12.479Q12.853 12.823 12.853 13.332V17.434Q12.853 17.883 13.257 17.883H15.099V19.5Z" />
+              </svg>
                 </div>
                 <div className="absolute inset-0 rounded-xl bg-amber/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
