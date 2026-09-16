@@ -11,10 +11,17 @@ import { cookies } from 'next/headers';
 export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
+/**
+ * Language a first-time visitor gets. French: the product, its demo data
+ * and its audience are French first, and one click switches to English.
+ */
+export const DEFAULT_LOCALE: Locale = 'fr';
+
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value;
-  const locale: Locale = cookieLocale === 'fr' ? 'fr' : 'en';
+  const locale: Locale =
+    cookieLocale === 'fr' || cookieLocale === 'en' ? cookieLocale : DEFAULT_LOCALE;
 
   return {
     locale,

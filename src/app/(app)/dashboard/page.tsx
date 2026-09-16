@@ -1,7 +1,7 @@
 /**
  * Dashboard — a tool, not a landing page: global stats + searchable
  * adapter list. The onboarding walkthrough only appears in the empty
- * state.
+ * state. The public landing lives at `/`.
  */
 
 import Link from 'next/link';
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
-  if (!user) redirect('/login');
+  if (!user) redirect('/login?redirect=/dashboard');
 
   const [adapters, stats, t, tNav, locale] = await Promise.all([
     getAdapters(),

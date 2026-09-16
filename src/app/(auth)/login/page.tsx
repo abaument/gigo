@@ -16,8 +16,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   // Same-origin only: an absolute or protocol-relative value would make
   // router.push navigate off-site (open redirect after login).
-  const rawRedirect = searchParams.get('redirect') || '/';
-  const redirect = /^\/(?!\/)/.test(rawRedirect) ? rawRedirect : '/';
+  const rawRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirect = /^\/(?!\/)/.test(rawRedirect) ? rawRedirect : '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // surfaces auth-callback failures (e.g. expired confirmation links)

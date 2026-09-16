@@ -357,3 +357,13 @@ body::before {
 .drawer-overlay {
   animation: overlayFadeIn 0.2s ease-out;
 }
+
+/* Landing: the dash travelling around the learning loop circuit. */
+@keyframes loop-travel {
+  from {
+    stroke-dashoffset: 804;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}

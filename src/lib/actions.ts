@@ -127,7 +127,7 @@ export async function signIn(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/');
+  redirect('/dashboard');
 }
 
 export async function signOut() {
@@ -199,7 +199,7 @@ export async function createAdapter(input: CreateAdapterInput) {
       },
     });
 
-    revalidatePath('/');
+    revalidatePath('/dashboard');
     return { success: true as const, data: adapter };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create adapter';
@@ -344,7 +344,7 @@ export async function updateAdapter(id: string, input: UpdateAdapterInput) {
       await disableLearningsOnSchemaChange(id);
     }
 
-    revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath(`/adapters/${id}`);
     return { success: true as const, data: adapter };
   } catch (error) {
@@ -372,7 +372,7 @@ export async function deleteAdapter(id: string) {
       where: { id },
     });
 
-    revalidatePath('/');
+    revalidatePath('/dashboard');
     return { success: true as const };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete adapter';
@@ -401,7 +401,7 @@ export async function toggleAdapterActive(id: string) {
       data: { isActive: !existing.isActive },
     });
 
-    revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath(`/adapters/${id}`);
     return { success: true as const, data: { isActive: adapter.isActive } };
   } catch (error) {
@@ -448,7 +448,7 @@ export async function duplicateAdapter(id: string) {
       },
     });
 
-    revalidatePath('/');
+    revalidatePath('/dashboard');
     return { success: true as const, data: copy };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to duplicate adapter';
