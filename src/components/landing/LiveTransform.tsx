@@ -125,9 +125,12 @@ export function LiveTransform({
   }, [index, reduced, pairs]);
 
   const notes = labels.notes[index] ?? [];
+  // stay dimmed through the swap, until the first line of the new pair
+  // lands: at full opacity an empty output pane reads as a glitch
+  const dimmed = fading || (!reduced && lines === 0);
 
   return (
-    <div className={`min-w-0 transition-opacity duration-500 ${fading ? 'opacity-30' : 'opacity-100'}`}>
+    <div className={`min-w-0 transition-opacity duration-500 ${dimmed ? 'opacity-30' : 'opacity-100'}`}>
     <div
       className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4"
     >
