@@ -24,6 +24,7 @@
     "@types/crypto-js": "^4.2.2",
     "autoprefixer": "^10.4.20",
     "crypto-js": "^4.2.0",
+    "jsonata": "^2.2.2",
     "next": "^14.2.23",
     "next-intl": "^3",
     "openai": "^4.82.0",

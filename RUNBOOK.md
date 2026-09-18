@@ -113,25 +113,45 @@ Le projet gratuit se met en veille après ~1 semaine sans activité. **Trois par
 2. Ping hebdomadaire : ouvrir le dashboard Supabase ou lancer l'app 1×/semaine, et **impérativement à J-1 et le matin du jour J**.
 3. Démo 100 % locale via `docker compose up` (Postgres local inclus) — mais l'auth passe quand même par Supabase cloud, donc le projet doit être réveillé de toute façon.
 
-### Checklist J-21 → J-7 (avant le 14 septembre)
+### État vérifié le 18 septembre 2026 (mesuré sur la production)
 
-- [ ] **Réveiller Supabase** (il est en pause en ce moment même) et décider : Pro ou ping hebdo
-- [ ] **Ajouter `ANTHROPIC_API_KEY`** au `.env` → la démo « 2 moteurs d'IA » ne marche pas sans
-- [ ] Créditer les comptes API (OpenAI + Anthropic) : ~5 € suffisent largement
-- [x] Compte de démo créé par le seed : `demo@gigo.dev` / `GigoLyon2026!`
-- [ ] Désactiver « Confirm email » dans Supabase (évite un blocage en live)
-- [x] 3 adaptateurs lyonnais seedés (`bun scripts/seed-demo.ts`, idempotent) : Événements innovation Lyon, Leads startups → CRM, Vélo'v Grand Lyon
-- [x] 19 logs réalistes seedés sur 10 jours (succès, échecs à rejouer, tests playground)
-- [ ] **Tester `docker compose up` une fois** de bout en bout
-- [ ] Enregistrer une **vidéo de secours** (2-3 min, screen recording du scénario complet) — le plan B absolu
-- [ ] Optionnel mais fort : déployer une instance sur **Vercel** → une URL publique = plan B réseau + « c'est déjà en ligne »
+Ce qui fonctionne : landing publique (0,3 s), connexion `demo@gigo.dev`, tableau de bord
+(8 adaptateurs, 33 appels sur 30 jours), playground pré-rempli avec un payload sale réel,
+journaux d'exécutions passées avec entrée, sortie, latence, tokens et statut de livraison,
+carte Apprentissages, refus `401 INVALID_SECRET` du webhook sans secret, suite de 110 tests.
+
+**Ce qui ne fonctionne pas : toute transformation en direct.**
+
+| Moteur | Réponse actuelle | Cause | Débloque |
+|---|---|---|---|
+| OpenAI (4 adaptateurs) | `503` `RATE_LIMIT` « OpenAI rate limit exceeded » | compte sans crédits (clé bien enregistrée) | recharger des crédits |
+| Anthropic (4 adaptateurs) | `500` `AUTH` « No Anthropic API key configured » | aucune clé dans `/settings` | créer une clé et la coller |
+
+Adaptateurs OpenAI : Commandes boutique → Pennylane, Support Mail → Helpdesk,
+Billetterie Lyon Tech Days → CRM, Leads startups → CRM.
+Adaptateurs Anthropic : Candidatures Lyon → ATS, Capteurs Grand Lyon → Supervision air,
+Vélo'v Grand Lyon, Événements innovation Lyon.
+
+Faire les deux : c'est aussi ce qui permet de montrer en direct la promesse « deux moteurs
+interchangeables », et un fournisseur en panne ne coûte alors que la moitié de la démonstration.
+
+### Checklist J-3 (à faire maintenant)
+
+- [ ] **Recharger OpenAI** en mode prépayé, recharge automatique décochée (5 à 10 € suffisent)
+- [ ] **Créer une clé Anthropic** dans un workspace dédié avec limite de dépense, la coller dans `/settings`
+- [ ] Rejouer le test de preuve : playground sur un adaptateur OpenAI puis sur un Anthropic, sortie JSON attendue des deux côtés
+- [x] Compte de démo : `demo@gigo.dev` / `GigoLyon2026!`
+- [x] 8 adaptateurs et leurs journaux en base, payloads d'exemple pré-remplis
+- [ ] Rejouer l'exécution en échec du 18 septembre (elle est en haut des journaux de Billetterie → CRM) : elle doit passer au vert et créer un apprentissage
+- [ ] Enregistrer une vidéo de secours de 2 à 3 minutes, une fois le moteur revenu
+- [ ] Supabase : ping la veille et le matin (le plan gratuit met en pause après une semaine d'inactivité)
 
 ### Checklist J-1
 
-- [ ] Ouvrir l'app, faire un test playground complet (réveille Supabase + vérifie les clés API)
-- [ ] Re-tester le cURL webhook + le forwarding vers webhook.site
-- [ ] Recharger la vidéo de secours sur le bureau
-- [ ] Charger le laptop, préparer le partage de connexion du téléphone (plan B WiFi)
+- [ ] Test playground complet sur les deux moteurs (réveille Supabase et vérifie les clés)
+- [ ] cURL webhook avec secret, puis sans secret, et vérifier la livraison sur webhook.site
+- [ ] Vidéo de secours et captures de `restitution/assets/demo-secours/` sur le bureau
+- [ ] Portable chargé, partage de connexion du téléphone testé depuis le navigateur
 
 ### Jour J — mise en scène
 

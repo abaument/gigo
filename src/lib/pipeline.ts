@@ -17,6 +17,34 @@ import { forwardToDestination, type ForwardResult } from '@/lib/forwarder';
 import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
 import { resolveApiKey } from '@/lib/api-keys';
 import { captureLearnings, getPromptLearnings } from '@/lib/learnings';
+import { applyRule } from '@/lib/jsonata-rule';
+import { DATA_FORMATS, type DataFormat } from '@/lib/formats';
+
+/** The column is a plain string: fall back to JSON on anything unexpected. */
+export function outputFormatOf(adapter: Pick<Adapter, 'outputFormat'>): DataFormat {
+  const value = adapter.outputFormat as DataFormat;
+  return DATA_FORMATS.includes(value) ? value : 'json';
+}
+
+/**
+ * Deterministic path: a stored mapping is evaluated instead of calling a
+ * model. Shaped as a TransformResult so the caller cannot tell the two apart.
+ */
+async function runRule(expression: string, input: unknown): Promise<TransformResult> {
+  const started = Date.now();
+  const result = await applyRule(expression, input);
+  return {
+    success: result.success,
+    data: result.data,
+    error: result.error,
+    // a rule that does not produce the expected shape is a mapping fault,
+    // which is the deterministic equivalent of an unparsable model answer
+    errorCode: result.success ? undefined : 'PARSE_ERROR',
+    durationMs: Date.now() - started,
+    provider: 'jsonata' as TransformResult['provider'],
+    model: 'jsonata',
+  };
+}
 
 export interface PipelineArgs {
   adapter: Adapter;
@@ -111,12 +139,18 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
       ? { examples: learnings.examples.length, pitfalls: learnings.pitfalls.length }
       : null;
 
-  const transform = await transformJson(inputJson, adapter.targetSchema, {
-    provider: adapter.modelProvider,
-    modelName: adapter.modelName ?? undefined,
-    apiKey: apiKey ?? undefined,
-    learnings: learningsApplied ? learnings! : undefined,
-  });
+  // A verified JSONata rule replaces the model call: same output every time,
+  // no token, a few milliseconds. The rest of the pipeline is unchanged, so
+  // validation, forwarding and logging behave identically either way.
+  const rule = adapter.jsonataEnabled ? adapter.jsonataExpression : null;
+  const transform = rule
+    ? await runRule(rule, inputJson)
+    : await transformJson(inputJson, adapter.targetSchema, {
+        provider: adapter.modelProvider,
+        modelName: adapter.modelName ?? undefined,
+        apiKey: apiKey ?? undefined,
+        learnings: learningsApplied ? learnings! : undefined,
+      });
 
   const warnings: string[] = [];
   const extraKeys: string[] = [];
@@ -144,7 +178,8 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
           authHeaderName: adapter.authHeaderName,
           encryptedAuthValue: adapter.encryptedAuthValue,
         },
-        adapter.forwardTimeoutMs
+        adapter.forwardTimeoutMs,
+        outputFormatOf(adapter)
       );
     }
   }

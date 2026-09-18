@@ -19,6 +19,7 @@ import { WebhookEndpointCard } from '@/components/adapter-detail/WebhookEndpoint
 import { EmailEndpointCard } from '@/components/adapter-detail/EmailEndpointCard';
 import { AdapterQuickActions } from '@/components/adapter-detail/AdapterQuickActions';
 import { LearningsCard } from '@/components/adapter-detail/LearningsCard';
+import { OutputRuleCard } from '@/components/adapter-detail/OutputRuleCard';
 import { TransformPlayground } from '@/components/playground/TransformPlayground';
 import { buildInboundAddress } from '@/lib/email-inbound';
 
@@ -55,8 +56,17 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
               {adapter.isActive ? tCommon('active') : tCommon('inactive')}
             </span>
             <span className="badge bg-bark text-sand border border-timber">
-              {adapter.modelProvider}
+              {adapter.jsonataEnabled ? 'jsonata' : adapter.modelProvider}
             </span>
+            <span className="badge bg-bark text-sand border border-timber uppercase">
+              {adapter.outputFormat}
+            </span>
+            <a
+              href="#apprentissages"
+              className="badge bg-amber/10 text-amber border border-amber/30 hover:bg-amber/20 transition-colors"
+            >
+              {t('learningsJump', { count: learnings.length })}
+            </a>
           </div>
           {adapter.description && (
             <p className="text-taupe font-accent">{adapter.description}</p>
@@ -113,8 +123,19 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
         />
       </div>
 
-      {/* Learning loop */}
+      {/* Output format + deterministic rule */}
       <div className="animate-slide-up">
+        <OutputRuleCard
+          adapterId={adapter.id}
+          outputFormat={adapter.outputFormat}
+          expression={adapter.jsonataExpression}
+          ruleEnabled={adapter.jsonataEnabled}
+          hasSample={Boolean(adapter.samplePayload)}
+        />
+      </div>
+
+      {/* Learning loop */}
+      <div id="apprentissages" className="animate-slide-up scroll-mt-24">
         <LearningsCard
           adapterId={adapter.id}
           learningEnabled={adapter.learningEnabled}

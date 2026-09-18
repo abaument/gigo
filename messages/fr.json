@@ -149,7 +149,8 @@
     "emailDisable": "Désactiver",
     "emailEnabled": "Entrée email activée",
     "emailDisabled": "Entrée email désactivée",
-    "emailDisabledHint": "Activez l'entrée email pour obtenir une adresse dédiée à cet adaptateur. L'adresse contient un jeton secret : ne la partagez qu'avec des expéditeurs de confiance."
+    "emailDisabledHint": "Activez l'entrée email pour obtenir une adresse dédiée à cet adaptateur. L'adresse contient un jeton secret : ne la partagez qu'avec des expéditeurs de confiance.",
+    "learningsJump": "Apprentissages ({count})"
   },
   "playground": {
     "title": "Playground",
@@ -476,5 +477,27 @@
       "step3": "Le schéma contraint chaque exécution",
       "note": "Le schéma reste modifiable à la main à tout moment."
     }
+  },
+  "outputRule": {
+    "title": "Sortie et règle de transformation",
+    "subtitle": "Ce que l'adaptateur renvoie, et s'il a encore besoin du modèle pour le produire.",
+    "formatLabel": "Format de sortie",
+    "formatHelp": "Appliqué à la réponse et à l'envoi vers la destination. L'entrée, elle, est détectée automatiquement (JSON, XML ou CSV).",
+    "formatSaved": "Format de sortie enregistré",
+    "ruleTitle": "Règle déterministe (JSONata)",
+    "ruleHelp": "Le modèle écrit la règle une fois, GIGO la vérifie sur votre payload d'exemple. Une fois activée, les exécutions n'appellent plus le modèle : même résultat à chaque fois, aucun token, quelques millisecondes.",
+    "ruleToggle": "Utiliser la règle",
+    "generate": "Générer la règle",
+    "regenerate": "Régénérer",
+    "generating": "Génération et vérification...",
+    "ruleVerified": "Règle vérifiée sur l'exemple et enregistrée",
+    "ruleOn": "Règle active : les exécutions n'appellent plus le modèle",
+    "ruleOff": "Règle désactivée : le modèle reprend la main",
+    "ruleDeleted": "Règle supprimée",
+    "delete": "Supprimer",
+    "stateOn": "Active",
+    "stateOff": "Enregistrée, non utilisée",
+    "needSample": "Ajoutez d'abord un payload d'exemple : c'est sur lui que la règle est vérifiée.",
+    "rejectedKeys": "Règle refusée, clés en cause : {keys}"
   }
 }

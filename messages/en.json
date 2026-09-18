@@ -149,7 +149,8 @@
     "emailDisable": "Disable",
     "emailEnabled": "Email ingress enabled",
     "emailDisabled": "Email ingress disabled",
-    "emailDisabledHint": "Enable email ingress to get a dedicated address for this adapter. The address embeds a secret token: only share it with trusted senders."
+    "emailDisabledHint": "Enable email ingress to get a dedicated address for this adapter. The address embeds a secret token: only share it with trusted senders.",
+    "learningsJump": "Learnings ({count})"
   },
   "playground": {
     "title": "Playground",
@@ -476,5 +477,27 @@
       "step3": "The schema constrains every run",
       "note": "The schema stays editable by hand at any time."
     }
+  },
+  "outputRule": {
+    "title": "Output and transformation rule",
+    "subtitle": "What the adapter returns, and whether it still needs the model to produce it.",
+    "formatLabel": "Output format",
+    "formatHelp": "Applied to the response and to the forwarded body. Input format is detected automatically (JSON, XML or CSV).",
+    "formatSaved": "Output format saved",
+    "ruleTitle": "Deterministic rule (JSONata)",
+    "ruleHelp": "The model writes the rule once, GIGO verifies it against your sample payload. Once enabled, runs no longer call the model: same result every time, no token, a few milliseconds.",
+    "ruleToggle": "Use the rule",
+    "generate": "Generate the rule",
+    "regenerate": "Regenerate",
+    "generating": "Generating and verifying...",
+    "ruleVerified": "Rule verified on the sample and saved",
+    "ruleOn": "Rule active: runs no longer call the model",
+    "ruleOff": "Rule disabled: the model takes over again",
+    "ruleDeleted": "Rule deleted",
+    "delete": "Delete",
+    "stateOn": "Active",
+    "stateOff": "Saved, not in use",
+    "needSample": "Add a sample payload first: that is what the rule is verified against.",
+    "rejectedKeys": "Rule refused, keys at fault: {keys}"
   }
 }

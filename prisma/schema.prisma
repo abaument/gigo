@@ -79,6 +79,16 @@ model Adapter {
   schemaSourceType   String? @map("schema_source_type") // "manual", "documentation", "url"
   schemaSourceUrl    String? @map("schema_source_url") // Original doc URL if applicable
 
+  /// Format written back to the caller and forwarded to the destination.
+  /// The engine always reasons in JSON; this only changes the edges.
+  /// "json" | "xml" | "csv". Input format is detected per request.
+  outputFormat       String  @default("json") @map("output_format")
+  /// Optional deterministic mapping. When set and enabled, the run skips the
+  /// model entirely: no token, no latency, identical output every time.
+  /// The expression is written by the model once, then verified on a sample.
+  jsonataExpression  String? @map("jsonata_expression")
+  jsonataEnabled     Boolean @default(false) @map("jsonata_enabled")
+
   // AI Model Configuration
   modelProvider String  @default("openai") @map("model_provider") // "openai", "anthropic"
   modelName     String? @map("model_name") // null => provider default

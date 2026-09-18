@@ -5,6 +5,7 @@
  */
 
 import { decrypt } from '@/lib/encryption';
+import { contentTypeFor, serialiseOutput, type DataFormat } from '@/lib/formats';
 import { assertSafeUrl, SsrfError } from '@/lib/ssrf-guard';
 
 // Destination responses are only echoed to the caller and logged
@@ -30,12 +31,14 @@ export async function forwardToDestination(
   method: string,
   data: unknown,
   authConfig: ForwardAuthConfig,
-  timeoutMs: number
+  timeoutMs: number,
+  /** Body written to the destination. JSON unless the adapter asks otherwise. */
+  format: DataFormat = 'json'
 ): Promise<ForwardResult> {
   const startTime = Date.now();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    'Content-Type': contentTypeFor(format),
     'User-Agent': 'GIGO/1.0',
   };
 
@@ -67,7 +70,7 @@ export async function forwardToDestination(
     const response = await fetch(destinationUrl, {
       method: method.toUpperCase(),
       headers,
-      body: JSON.stringify(data),
+      body: serialiseOutput(data, format),
       signal: controller.signal,
       redirect: 'manual',
     });

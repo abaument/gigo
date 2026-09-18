@@ -15,6 +15,9 @@ import { db } from './db';
 import { createClient } from './supabase/server';
 import { encrypt, decrypt, maskSensitive } from './encryption';
 import { generateSchemaFromDocs, generateSchemaFromUrl } from './schema-generator';
+import { generateRule } from './jsonata-generator';
+import { verifyRule } from './jsonata-rule';
+import { DATA_FORMATS, type DataFormat } from './formats';
 import { envApiKey, KEYABLE_PROVIDERS, resolveApiKey } from './api-keys';
 import { disableLearningsOnSchemaChange, saveExample } from './learnings';
 import { assertSafeUrl, SsrfError } from './ssrf-guard';
@@ -1014,6 +1017,168 @@ export async function deleteUserApiKey(provider: string) {
     return { success: true as const };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete API key';
+    return { success: false as const, error: message };
+  }
+}
+
+// =============================================================================
+// OUTPUT FORMAT AND DETERMINISTIC MAPPING
+// =============================================================================
+
+/** Change what the adapter writes back and forwards: JSON, XML or CSV. */
+export async function setOutputFormat(adapterId: string, format: string) {
+  try {
+    const user = await requireAuth();
+    if (!UUID_RE.test(adapterId)) return { success: false as const, error: 'Adapter not found' };
+    if (!DATA_FORMATS.includes(format as DataFormat)) {
+      return { success: false as const, error: 'Unsupported output format' };
+    }
+
+    const { count } = await db.adapter.updateMany({
+      where: { id: adapterId, userId: user.id },
+      data: { outputFormat: format },
+    });
+    if (count === 0) return { success: false as const, error: 'Adapter not found' };
+
+    revalidatePath(`/adapters/${adapterId}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to set output format';
+    return { success: false as const, error: message };
+  }
+}
+
+/**
+ * Ask the model to write the mapping once, verify it on the adapter's own
+ * sample, and store it only if it reproduces the expected output exactly.
+ */
+export async function generateJsonataRule(adapterId: string) {
+  try {
+    const user = await requireAuth();
+    if (!UUID_RE.test(adapterId)) return { success: false as const, error: 'Adapter not found' };
+
+    const adapter = await db.adapter.findFirst({
+      where: { id: adapterId, userId: user.id },
+    });
+    if (!adapter) return { success: false as const, error: 'Adapter not found' };
+    if (!adapter.samplePayload) {
+      return {
+        success: false as const,
+        error: 'This adapter has no sample payload: add one, the rule is verified against it',
+        code: 'no_sample' as const,
+      };
+    }
+
+    const provider = adapter.modelProvider === 'anthropic' ? 'anthropic' : 'openai';
+    const apiKey = await resolveApiKey(user.id, provider);
+    if (!apiKey) {
+      return {
+        success: false as const,
+        error: `No ${provider} API key configured, add yours in Settings`,
+      };
+    }
+
+    const generated = await generateRule({
+      targetSchema: adapter.targetSchema,
+      samplePayload: adapter.samplePayload,
+      provider,
+      apiKey,
+      modelName: adapter.modelName ?? undefined,
+    });
+
+    if (!generated.success || !generated.expression) {
+      return {
+        success: false as const,
+        // surfaced so the user sees WHY the rule was refused, not just that it was
+        error: generated.verification?.error ?? generated.error ?? 'Rule generation failed',
+        missingKeys: generated.verification?.missingKeys ?? [],
+        differingKeys: generated.verification?.differingKeys ?? [],
+      };
+    }
+
+    await db.adapter.update({
+      where: { id: adapter.id },
+      data: { jsonataExpression: generated.expression, jsonataEnabled: false },
+    });
+
+    revalidatePath(`/adapters/${adapterId}`);
+    return { success: true as const, expression: generated.expression };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to generate the rule';
+    return { success: false as const, error: message };
+  }
+}
+
+/**
+ * Switch the deterministic path on or off. Turning it on re-verifies the rule
+ * first: a schema edited since generation would otherwise silently break
+ * every run.
+ */
+export async function setJsonataEnabled(adapterId: string, enabled: boolean) {
+  try {
+    const user = await requireAuth();
+    if (!UUID_RE.test(adapterId)) return { success: false as const, error: 'Adapter not found' };
+
+    const adapter = await db.adapter.findFirst({
+      where: { id: adapterId, userId: user.id },
+    });
+    if (!adapter) return { success: false as const, error: 'Adapter not found' };
+
+    if (enabled) {
+      if (!adapter.jsonataExpression) {
+        return { success: false as const, error: 'No rule to enable yet' };
+      }
+      if (adapter.samplePayload) {
+        try {
+          const check = await verifyRule(
+            adapter.jsonataExpression,
+            JSON.parse(adapter.samplePayload),
+            JSON.parse(adapter.targetSchema)
+          );
+          if (!check.ok) {
+            return {
+              success: false as const,
+              error:
+                'The stored rule no longer reproduces the target on the sample, generate it again',
+              missingKeys: check.missingKeys,
+              differingKeys: check.differingKeys,
+            };
+          }
+        } catch {
+          return { success: false as const, error: 'Sample or target schema is not valid JSON' };
+        }
+      }
+    }
+
+    await db.adapter.update({
+      where: { id: adapter.id },
+      data: { jsonataEnabled: enabled },
+    });
+
+    revalidatePath(`/adapters/${adapterId}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to switch the rule';
+    return { success: false as const, error: message };
+  }
+}
+
+/** Drop the stored mapping and fall back to the model. */
+export async function deleteJsonataRule(adapterId: string) {
+  try {
+    const user = await requireAuth();
+    if (!UUID_RE.test(adapterId)) return { success: false as const, error: 'Adapter not found' };
+
+    const { count } = await db.adapter.updateMany({
+      where: { id: adapterId, userId: user.id },
+      data: { jsonataExpression: null, jsonataEnabled: false },
+    });
+    if (count === 0) return { success: false as const, error: 'Adapter not found' };
+
+    revalidatePath(`/adapters/${adapterId}`);
+    return { success: true as const };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete the rule';
     return { success: false as const, error: message };
   }
 }

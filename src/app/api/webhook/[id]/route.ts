@@ -14,7 +14,15 @@ import {
   pipelineResponseBody,
   runTransformation,
   transformErrorStatus,
+  outputFormatOf,
 } from '@/lib/pipeline';
+import {
+  contentTypeFor,
+  detectFormat,
+  FormatError,
+  parseInput,
+  serialiseOutput,
+} from '@/lib/formats';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -134,12 +142,16 @@ export async function POST(
       return jsonError(400, 'EMPTY_BODY', 'Empty request body');
     }
 
-    // 5. Parse
+    // 5. Parse — JSON, XML or CSV, decided by the content type then the body
+    const inputFormat = detectFormat(body, request.headers.get('content-type'));
     let inputJson: unknown;
     try {
-      inputJson = JSON.parse(body);
-    } catch {
-      return jsonError(400, 'INVALID_JSON', 'Invalid JSON in request body');
+      inputJson = parseInput(body, inputFormat);
+    } catch (error) {
+      if (error instanceof FormatError) {
+        return jsonError(400, error.code, error.message);
+      }
+      return jsonError(400, 'INVALID_JSON', 'Unreadable request body');
     }
 
     // 6. Transform → forward → log → usage
@@ -153,6 +165,22 @@ export async function POST(
     });
 
     const status = result.ok ? 200 : transformErrorStatus(result);
+
+    // A successful run answers in the adapter's own format; failures stay JSON
+    // so that error handling is identical whatever the adapter emits.
+    const format = outputFormatOf(adapter);
+    if (result.ok && format !== 'json') {
+      try {
+        return new NextResponse(serialiseOutput(result.transform.data, format), {
+          status,
+          headers: { ...corsHeaders, 'Content-Type': contentTypeFor(format) },
+        });
+      } catch (error) {
+        const message = error instanceof FormatError ? error.message : 'Serialisation failed';
+        return jsonError(500, 'OUTPUT_FORMAT_FAILED', message);
+      }
+    }
+
     return NextResponse.json(pipelineResponseBody(result, adapter), {
       status,
       headers: corsHeaders,
