@@ -176,7 +176,7 @@ export default async function AdapterDetailPage({ params }: { params: { id: stri
                 <span className="text-xs text-sand font-accent">
                   {formatDuration(log.totalDuration)}
                 </span>
-                <span className="text-xs text-clay font-accent shrink-0">
+                <span className="text-xs text-clay font-accent shrink-0" suppressHydrationWarning>
                   {formatTimestamp(log.createdAt, locale)}
                 </span>
               </li>

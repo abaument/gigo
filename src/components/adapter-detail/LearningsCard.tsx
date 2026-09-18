@@ -146,7 +146,7 @@ export function LearningsCard({ adapterId, learningEnabled, learnings }: Learnin
                     ? (item.inputJson ?? '').replace(/\s+/g, ' ').slice(0, 110)
                     : item.note}
                 </p>
-                <p className="text-[10px] text-clay font-accent mt-0.5">
+                <p className="text-[10px] text-clay font-accent mt-0.5" suppressHydrationWarning>
                   {t(`source_${item.source}` as Parameters<typeof t>[0])} ·{' '}
                   {formatTimestamp(new Date(item.createdAt), locale)}
                 </p>

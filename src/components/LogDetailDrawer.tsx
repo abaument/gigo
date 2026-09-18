@@ -274,7 +274,9 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[11px] font-accent uppercase tracking-wider text-taupe">{label}</dt>
-      <dd className="text-sand font-mono text-xs mt-0.5 break-all">{value}</dd>
+      <dd className="text-sand font-mono text-xs mt-0.5 break-all" suppressHydrationWarning>
+        {value}
+      </dd>
     </div>
   );
 }

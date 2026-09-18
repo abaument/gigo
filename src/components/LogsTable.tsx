@@ -109,7 +109,7 @@ export function LogsTable({
                 </span>
               </div>
               <div className="col-span-2 sm:col-span-3 max-sm:order-4 sm:text-right">
-                <span className="text-xs text-clay font-accent">
+                <span className="text-xs text-clay font-accent" suppressHydrationWarning>
                   {formatTimestamp(log.createdAt, locale)}
                 </span>
               </div>
