@@ -12,13 +12,26 @@
  * refuse anything they cannot represent faithfully rather than guessing.
  */
 
+import { unzipSync, strFromU8 } from 'fflate';
+
+/** Formats an adapter can emit. A spreadsheet is an input shape, not an output
+ *  one: nobody wants a webhook to answer with a binary workbook. */
 export const DATA_FORMATS = ['json', 'xml', 'csv'] as const;
 export type DataFormat = (typeof DATA_FORMATS)[number];
+
+/** Everything the webhook accepts, spreadsheets included. */
+export const INPUT_FORMATS = [...DATA_FORMATS, 'xlsx'] as const;
+export type InputFormat = (typeof INPUT_FORMATS)[number];
 
 export class FormatError extends Error {
   constructor(
     message: string,
-    readonly code: 'INVALID_JSON' | 'INVALID_XML' | 'INVALID_CSV' | 'UNSUPPORTED_SHAPE'
+    readonly code:
+      | 'INVALID_JSON'
+      | 'INVALID_XML'
+      | 'INVALID_CSV'
+      | 'INVALID_XLSX'
+      | 'UNSUPPORTED_SHAPE'
   ) {
     super(message);
     this.name = 'FormatError';
@@ -276,6 +289,107 @@ export function parseCsvRows(text: string): string[][] {
 export function parseCsvDocument(text: string): unknown {
   const rows = parseCsvRows(text);
   if (rows.length < 2) throw new FormatError('CSV needs a header and a row', 'INVALID_CSV');
+
+  const header = rows[0].map((h) => h.trim());
+  const records = rows.slice(1, 1 + MAX_CSV_ROWS).map((cells) => {
+    const record: Record<string, string> = {};
+    header.forEach((key, idx) => {
+      if (key) record[key] = (cells[idx] ?? '').trim();
+    });
+    return record;
+  });
+  return records.length === 1 ? records[0] : records;
+}
+
+// ---------------------------------------------------------------------------
+// Spreadsheets
+// ---------------------------------------------------------------------------
+
+/** A workbook is a zip: these four bytes are its signature. */
+export function looksLikeXlsx(bytes: Uint8Array): boolean {
+  return bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b &&
+    (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07);
+}
+
+/** Column letters to a zero based index: A is 0, Z is 25, AA is 26. */
+function columnIndex(ref: string): number {
+  const letters = ref.replace(/[0-9]/g, '');
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+
+function xmlElements(xml: string, tag: string): string[] {
+  const out: string[] = [];
+  const open = new RegExp(`<${tag}(\\s[^>]*)?>`, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(xml)) !== null) {
+    const start = m.index;
+    const close = xml.indexOf(`</${tag}>`, open.lastIndex);
+    if (close === -1) break;
+    out.push(xml.slice(start, close + tag.length + 3));
+  }
+  return out;
+}
+
+/**
+ * Reads the first worksheet of an xlsx: header row, then one record per row.
+ *
+ * Only what a data payload needs is interpreted: shared strings, inline
+ * strings, numbers and the cached value of formulas. Styles, dates formatted
+ * by number format and merged cells are read as their stored value, which is
+ * what a downstream schema wants anyway.
+ */
+export function parseXlsx(bytes: Uint8Array): unknown {
+  let files: Record<string, Uint8Array>;
+  try {
+    files = unzipSync(bytes);
+  } catch {
+    throw new FormatError('Not a readable spreadsheet', 'INVALID_XLSX');
+  }
+
+  const sheetName = Object.keys(files)
+    .filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))
+    .sort()[0];
+  if (!sheetName) throw new FormatError('No worksheet in the workbook', 'INVALID_XLSX');
+
+  const shared: string[] = [];
+  const sharedFile = files['xl/sharedStrings.xml'];
+  if (sharedFile) {
+    for (const si of xmlElements(strFromU8(sharedFile), 'si')) {
+      const parts = [...si.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => m[1]);
+      shared.push(decodeEntities(parts.join('')));
+    }
+  }
+
+  const sheet = strFromU8(files[sheetName]);
+  const rows: string[][] = [];
+
+  for (const row of xmlElements(sheet, 'row')) {
+    const cells: string[] = [];
+    for (const cell of [...row.matchAll(/<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g)]) {
+      const attrs = cell[1] ?? '';
+      const inner = cell[2] ?? '';
+      const ref = /r="([A-Z]+\d+)"/.exec(attrs)?.[1];
+      const type = /t="([^"]+)"/.exec(attrs)?.[1];
+
+      let value = '';
+      if (type === 'inlineStr') {
+        value = [...inner.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => m[1]).join('');
+      } else {
+        value = /<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/.exec(inner)?.[1] ?? '';
+      }
+      value = decodeEntities(value);
+      if (type === 's') value = shared[Number(value)] ?? '';
+
+      const index = ref ? columnIndex(ref) : cells.length;
+      while (cells.length < index) cells.push('');
+      cells[index] = value;
+    }
+    if (cells.some((c) => c.trim() !== '')) rows.push(cells);
+  }
+
+  if (rows.length < 2) throw new FormatError('Spreadsheet needs a header and a row', 'INVALID_XLSX');
 
   const header = rows[0].map((h) => h.trim());
   const records = rows.slice(1, 1 + MAX_CSV_ROWS).map((cells) => {

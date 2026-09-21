@@ -20,7 +20,9 @@ import {
   contentTypeFor,
   detectFormat,
   FormatError,
+  looksLikeXlsx,
   parseInput,
+  parseXlsx,
   serialiseOutput,
 } from '@/lib/formats';
 
@@ -39,9 +41,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 async function readBodyCapped(
   request: NextRequest,
   maxBytes: number
-): Promise<{ body: string } | { tooLarge: true }> {
+): Promise<{ body: string; bytes: Uint8Array } | { tooLarge: true }> {
   const reader = request.body?.getReader();
-  if (!reader) return { body: '' };
+  if (!reader) return { body: '', bytes: new Uint8Array() };
 
   const chunks: Uint8Array[] = [];
   let received = 0;
@@ -55,7 +57,10 @@ async function readBodyCapped(
     }
     chunks.push(value);
   }
-  return { body: Buffer.concat(chunks).toString('utf8') };
+  const bytes = Buffer.concat(chunks);
+  // the text form is what JSON, XML and CSV need; the bytes are what a
+  // spreadsheet needs, and decoding those as UTF-8 would destroy them
+  return { body: bytes.toString('utf8'), bytes: new Uint8Array(bytes) };
 }
 
 const corsHeaders = {
@@ -142,11 +147,13 @@ export async function POST(
       return jsonError(400, 'EMPTY_BODY', 'Empty request body');
     }
 
-    // 5. Parse — JSON, XML or CSV, decided by the content type then the body
-    const inputFormat = detectFormat(body, request.headers.get('content-type'));
+    // 5. Parse — JSON, XML, CSV or a spreadsheet, decided by the content type,
+    // then by the bytes themselves
     let inputJson: unknown;
     try {
-      inputJson = parseInput(body, inputFormat);
+      inputJson = looksLikeXlsx(read.bytes)
+        ? parseXlsx(read.bytes)
+        : parseInput(body, detectFormat(body, request.headers.get('content-type')));
     } catch (error) {
       if (error instanceof FormatError) {
         return jsonError(400, error.code, error.message);
