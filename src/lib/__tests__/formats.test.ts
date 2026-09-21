@@ -210,3 +210,61 @@ describe('serialiseOutput and contentTypeFor', () => {
     expect(serialiseOutput({ a: 1 }, 'json')).toBe('{\n  "a": 1\n}');
   });
 });
+
+describe('messages and free text', () => {
+  const EMAIL = [
+    'From: Service Client Chronopost <suivi@chronopost.example>',
+    'To: logistique@boutique.example',
+    'Subject: =?UTF-8?B?Q29saXMgQ09MLTIwMjYtODg0NTEyIGVuIHJldGFyZA==?=',
+    'Date: Mon, 21 Sep 2026 09:12:04 +0200',
+    'Message-ID: <abc123@chronopost.example>',
+    '',
+    'Bonjour,',
+    '',
+    "Le colis COL-2026-884512 destiné à Nadia Cherif (Villeurbanne) est retardé.",
+    'Nouvelle livraison estimée le 23/09/2026. Poids 2,45 kg.',
+  ].join('\n');
+
+  it('detects a message from its headers, without a content type', () => {
+    expect(detectFormat(EMAIL, null)).toBe('eml');
+  });
+
+  it('detects a message announced as plain text', () => {
+    expect(detectFormat(EMAIL, 'text/plain; charset=utf-8')).toBe('eml');
+  });
+
+  it('pulls the envelope apart and keeps the body whole', () => {
+    const mail = parseInput(EMAIL, 'eml') as Record<string, string>;
+    expect(mail.from).toContain('suivi@chronopost.example');
+    expect(mail.to).toBe('logistique@boutique.example');
+    expect(mail.date).toContain('21 Sep 2026');
+    expect(mail.body).toContain('COL-2026-884512');
+    expect(mail.body.startsWith('Bonjour')).toBe(true);
+  });
+
+  it('decodes an encoded subject', () => {
+    const mail = parseInput(EMAIL, 'eml') as Record<string, string>;
+    expect(mail.subject).toBe('Colis COL-2026-884512 en retard');
+  });
+
+  it('unfolds a header written across two lines', () => {
+    const folded = 'Subject: colis en\n  retard\nFrom: a@b.c\n\ncorps';
+    const mail = parseInput(folded, 'eml') as Record<string, string>;
+    expect(mail.subject).toBe('colis en retard');
+  });
+
+  it('treats prose as text rather than forcing it into a table', () => {
+    const note = "Le chauffeur signale que le colis 884517 n'a pas pu être livré.";
+    expect(detectFormat(note, null)).toBe('text');
+    expect(parseInput(note, 'text')).toEqual({ text: note });
+  });
+
+  it('still recognises a real table, which prose must not be confused with', () => {
+    expect(detectFormat('a,b\n1,2\n3,4', null)).toBe('csv');
+    expect(detectFormat('une phrase, avec une virgule', null)).toBe('text');
+  });
+
+  it('refuses an empty text body', () => {
+    expect(() => parseInput('   ', 'text')).toThrow(FormatError);
+  });
+});

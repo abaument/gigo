@@ -19,9 +19,12 @@ import { unzipSync, strFromU8 } from 'fflate';
 export const DATA_FORMATS = ['json', 'xml', 'csv'] as const;
 export type DataFormat = (typeof DATA_FORMATS)[number];
 
-/** Everything the webhook accepts, spreadsheets included. */
-export const INPUT_FORMATS = [...DATA_FORMATS, 'xlsx'] as const;
+/** Everything the webhook accepts: structured, tabular, and simply written. */
+export const INPUT_FORMATS = [...DATA_FORMATS, 'xlsx', 'eml', 'text'] as const;
 export type InputFormat = (typeof INPUT_FORMATS)[number];
+
+/** The formats that arrive as text and can be parsed without the raw bytes. */
+export type TextInputFormat = 'json' | 'xml' | 'csv' | 'eml' | 'text';
 
 export class FormatError extends Error {
   constructor(
@@ -31,6 +34,7 @@ export class FormatError extends Error {
       | 'INVALID_XML'
       | 'INVALID_CSV'
       | 'INVALID_XLSX'
+      | 'INVALID_TEXT'
       | 'UNSUPPORTED_SHAPE'
   ) {
     super(message);
@@ -52,23 +56,52 @@ const MAX_XML_DEPTH = 40;
  * the body itself. The content type wins when it is explicit, because a CSV
  * whose first cell starts with `{` would otherwise be read as JSON.
  */
-export function detectFormat(body: string, contentType?: string | null): DataFormat {
+export function detectFormat(body: string, contentType?: string | null): TextInputFormat {
   const type = (contentType ?? '').toLowerCase();
   if (type.includes('json')) return 'json';
+  if (type.includes('rfc822') || type.includes('message/')) return 'eml';
   if (type.includes('xml')) return 'xml';
   if (type.includes('csv')) return 'csv';
+  if (type.includes('text/plain')) return looksLikeEmail(body) ? 'eml' : 'text';
 
   const trimmed = body.trimStart();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json';
   if (trimmed.startsWith('<')) return 'xml';
-  return 'csv';
+  if (looksLikeEmail(body)) return 'eml';
+  return looksLikeCsv(body) ? 'csv' : 'text';
+}
+
+/** A message starts with headers: at least a couple of them, before a blank line. */
+function looksLikeEmail(body: string): boolean {
+  const head = body.slice(0, 2000).split(/\r?\n\r?\n/)[0];
+  const headers = head
+    .split(/\r?\n/)
+    .filter((line) => /^[A-Za-z-]+:\s/.test(line));
+  const names = headers.map((h) => h.split(':')[0].toLowerCase());
+  return headers.length >= 2 && names.some((n) => ['from', 'subject', 'to', 'received'].includes(n));
+}
+
+/**
+ * Tabular means a header line and at least one data line sharing the same
+ * separator and the same number of columns. Free text almost never does.
+ */
+function looksLikeCsv(body: string): boolean {
+  const lines = body.trim().split(/\r?\n/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) return false;
+
+  for (const sep of [',', ';', '\t']) {
+    const columns = lines[0].split(sep).length;
+    if (columns < 2) continue;
+    if (lines.slice(1, 4).every((l) => l.split(sep).length === columns)) return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
 // Parsing: any format in, plain JSON value out
 // ---------------------------------------------------------------------------
 
-export function parseInput(body: string, format: DataFormat): unknown {
+export function parseInput(body: string, format: TextInputFormat): unknown {
   switch (format) {
     case 'json':
       try {
@@ -80,7 +113,70 @@ export function parseInput(body: string, format: DataFormat): unknown {
       return parseXml(body);
     case 'csv':
       return parseCsvDocument(body);
+    case 'eml':
+      return parseEml(body);
+    case 'text':
+      return parseText(body);
   }
+}
+
+/**
+ * A written message, structured just enough: the headers that carry meaning,
+ * and the body left whole. The model reads prose better than anyone, so the
+ * job here is to hand it the prose plus its envelope, not to over-parse.
+ */
+export function parseEml(body: string): Record<string, unknown> {
+  const separator = /\r?\n\r?\n/.exec(body);
+  const rawHeaders = separator ? body.slice(0, separator.index) : body;
+  const text = separator ? body.slice(separator.index + separator[0].length) : '';
+
+  // a header value may continue on the next line when it starts with a space
+  const unfolded = rawHeaders.replace(/\r?\n[ \t]+/g, ' ');
+  const headers: Record<string, string> = {};
+  for (const line of unfolded.split(/\r?\n/)) {
+    const at = line.indexOf(':');
+    if (at <= 0) continue;
+    const name = line.slice(0, at).trim().toLowerCase();
+    const value = decodeEncodedWords(line.slice(at + 1).trim());
+    headers[name] = headers[name] ? `${headers[name]}, ${value}` : value;
+  }
+
+  return {
+    from: headers.from ?? '',
+    to: headers.to ?? '',
+    subject: headers.subject ?? '',
+    date: headers.date ?? '',
+    body: text.trim(),
+    headers,
+  };
+}
+
+/** Subjects travel encoded when they hold accents: =?UTF-8?B?...?= */
+function decodeEncodedWords(value: string): string {
+  return value.replace(
+    /=\?([^?]+)\?([bqBQ])\?([^?]*)\?=/g,
+    (whole, _charset: string, encoding: string, payload: string) => {
+      try {
+        if (encoding.toLowerCase() === 'b') {
+          return Buffer.from(payload, 'base64').toString('utf8');
+        }
+        return payload
+          .replace(/_/g, ' ')
+          .replace(/=([0-9A-Fa-f]{2})/g, (_m, hex: string) =>
+            String.fromCharCode(parseInt(hex, 16))
+          );
+      } catch {
+        return whole;
+      }
+    }
+  );
+}
+
+/** Free text: handed over as it was written, nothing invented around it. */
+export function parseText(body: string): Record<string, string> {
+  const text = body.trim();
+  if (!text) throw new FormatError('Empty text body', 'INVALID_TEXT');
+  return { text };
 }
 
 type XmlNode = { name: string; attrs: Record<string, string>; children: XmlNode[]; text: string };

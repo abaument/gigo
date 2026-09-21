@@ -61,6 +61,8 @@ const CONTENT_TYPE: Record<string, string> = {
   xml: 'application/xml',
   csv: 'text/csv',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  eml: 'message/rfc822',
+  txt: 'text/plain; charset=utf-8',
 };
 
 const colour = {
@@ -117,7 +119,7 @@ if (!args.includes('--keep-bin')) {
 }
 
 console.log();
-console.log(colour.bold('  Quatre transporteurs, quatre formats, un seul suivi'));
+console.log(colour.bold('  Quatre transporteurs, six formats, un seul suivi'));
 console.log(colour.dim(`  ${BASE}/api/webhook/${ADAPTER}`));
 if (inspectUrl) {
   console.log(colour.gold(`  destination du jour : ${inspectUrl}`));
@@ -156,7 +158,7 @@ for (const file of files) {
 const avg = timings.length ? Math.round(timings.reduce((a, b) => a + b, 0) / timings.length) : 0;
 console.log(colour.dim('  ' + '-'.repeat(110)));
 console.log(`  ${colour.bold(`${ok}/${files.length}`)} transformés, ${avg} ms en moyenne, ` +
-  `4 formats en entrée, ${colour.gold('un seul schéma en sortie')}`);
+  `6 formats en entrée, ${colour.gold('un seul schéma en sortie')}`);
 console.log();
 console.log(colour.dim('  Regarder maintenant :'));
 console.log(`  journal        ${BASE}/adapters/${ADAPTER}/logs`);

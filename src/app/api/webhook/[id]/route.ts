@@ -24,6 +24,7 @@ import {
   parseInput,
   parseXlsx,
   serialiseOutput,
+  type InputFormat,
 } from '@/lib/formats';
 
 export const dynamic = 'force-dynamic';
@@ -150,14 +151,14 @@ export async function POST(
     // 5. Parse — JSON, XML, CSV or a spreadsheet, decided by the content type,
     // then by the bytes themselves
     let inputJson: unknown;
-    let inputFormat: string;
+    let inputFormat: InputFormat;
     try {
       if (looksLikeXlsx(read.bytes)) {
         inputFormat = 'xlsx';
         inputJson = parseXlsx(read.bytes);
       } else {
         inputFormat = detectFormat(body, request.headers.get('content-type'));
-        inputJson = parseInput(body, inputFormat as 'json' | 'xml' | 'csv');
+        inputJson = parseInput(body, inputFormat);
       }
     } catch (error) {
       if (error instanceof FormatError) {
