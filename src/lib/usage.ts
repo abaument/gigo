@@ -31,7 +31,21 @@ export function getMonthlyTokenQuota(): number {
 }
 
 export async function checkMonthlyQuota(userId: string): Promise<QuotaCheck> {
-  const quota = getMonthlyTokenQuota();
+  // The account's own ceiling wins over the environment one: a shared
+  // instance has no reason to ration every account identically. A lookup
+  // failure must never take a transformation down, so it falls back.
+  let accountQuota: number | null = null;
+  try {
+    const account = await db.user.findUnique({
+      where: { id: userId },
+      select: { monthlyTokenQuota: true },
+    });
+    accountQuota = account?.monthlyTokenQuota ?? null;
+  } catch {
+    accountQuota = null;
+  }
+
+  const quota = accountQuota ?? getMonthlyTokenQuota();
   if (quota === 0) {
     return { allowed: true, used: 0, quota: 0 };
   }

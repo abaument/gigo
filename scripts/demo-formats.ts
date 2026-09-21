@@ -12,11 +12,18 @@
  *   --secret <value> its webhook secret
  *   --local          hit http://localhost:3000 instead of production
  *   --slow           one second between files, easier to narrate
+ *   --keep-bin       do not provision a fresh destination
+ *
+ * A fresh inspection endpoint is created on every run. The free tier of
+ * webhook.site caps how many requests a URL may receive, and a demo rehearsed
+ * a few times reaches that cap, which then looks like a delivery failure in
+ * front of a jury. Provisioning a new one each time sidesteps it entirely.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { db } from '../src/lib/db';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => {
@@ -32,6 +39,22 @@ const SECRET = flag('secret') ?? 'whsec_IBB4HD8ePiJM0VWME1RYWDSIPjHEPhP9';
 const PAUSE_MS = args.includes('--slow') ? 1000 : 150;
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), 'demo-formats');
+
+/** Provision a fresh inspection endpoint and point the adapter at it. */
+async function refreshDestination(): Promise<string | null> {
+  try {
+    const response = await fetch('https://webhook.site/token', { method: 'POST' });
+    if (!response.ok) return null;
+    const { uuid } = (await response.json()) as { uuid: string };
+    await db.adapter.update({
+      where: { id: ADAPTER },
+      data: { destinationUrl: `https://webhook.site/${uuid}` },
+    });
+    return uuid;
+  } catch {
+    return null;
+  }
+}
 
 const CONTENT_TYPE: Record<string, string> = {
   json: 'application/json',
@@ -87,9 +110,19 @@ const files = readdirSync(DIR)
   .filter((f) => !f.startsWith('.') && !/ \d+\.[a-z]+$/i.test(f))
   .sort();
 
+let inspectUrl: string | null = null;
+if (!args.includes('--keep-bin')) {
+  const uuid = await refreshDestination();
+  inspectUrl = uuid ? `https://webhook.site/#!/view/${uuid}` : null;
+}
+
 console.log();
 console.log(colour.bold('  Quatre transporteurs, quatre formats, un seul suivi'));
 console.log(colour.dim(`  ${BASE}/api/webhook/${ADAPTER}`));
+if (inspectUrl) {
+  console.log(colour.gold(`  destination du jour : ${inspectUrl}`));
+  console.log(colour.dim('  ouvre ce lien avant de continuer, les colis y arriveront en direct'));
+}
 console.log();
 console.log(
   colour.dim('  ' + 'fichier'.padEnd(32) + 'format'.padEnd(8) + 'statut'.padEnd(8) + 'durée'.padEnd(9) + 'sortie normalisée')
@@ -128,4 +161,6 @@ console.log();
 console.log(colour.dim('  Regarder maintenant :'));
 console.log(`  journal        ${BASE}/adapters/${ADAPTER}/logs`);
 console.log(`  apprentissages ${BASE}/adapters/${ADAPTER}#apprentissages`);
+if (inspectUrl) console.log(`  destination    ${inspectUrl}`);
 console.log();
+await db.$disconnect();

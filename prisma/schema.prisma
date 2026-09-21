@@ -33,6 +33,12 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  /// Per-account monthly token budget, overriding MONTHLY_TOKEN_QUOTA.
+  /// 0 means unlimited for this account, null means follow the environment.
+  /// Exists because the environment value is one size for everybody, and the
+  /// account doing the demonstrations is not the one to ration.
+  monthlyTokenQuota Int? @map("monthly_token_quota")
+
   // Relations
   adapters Adapter[]
   apiKeys  UserApiKey[]
