@@ -249,7 +249,35 @@ export function LogDetailDrawer({ log, onClose, onReplayed }: LogDetailDrawerPro
               </div>
             ) : (
               <>
-                {tab === 'input' && <JsonViewer json={fullLog.inputJson} maxHeight="max-h-[70vh]" />}
+                {tab === 'input' && (
+                  <>
+                    {/* What the caller actually sent comes first: seeing the XML
+                        or the spreadsheet rows is the point of accepting them. */}
+                    {fullLog.inputFormat && fullLog.inputFormat !== 'json' && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="badge bg-amber/15 text-amber border border-amber/30 uppercase">
+                            {fullLog.inputFormat}
+                          </span>
+                          <span className="text-[11px] text-taupe font-accent">
+                            {t('receivedAs')}
+                          </span>
+                        </div>
+                        {fullLog.inputRaw ? (
+                          <pre className="code-block whitespace-pre-wrap break-words max-h-[32vh] overflow-y-auto text-xs">
+                            {fullLog.inputRaw}
+                          </pre>
+                        ) : (
+                          <p className="text-xs text-clay font-accent">{t('binaryInput')}</p>
+                        )}
+                        <div className="text-[11px] text-taupe font-accent mt-3 mb-1.5">
+                          {t('convertedTo')}
+                        </div>
+                      </div>
+                    )}
+                    <JsonViewer json={fullLog.inputJson} maxHeight="max-h-[70vh]" />
+                  </>
+                )}
                 {tab === 'output' &&
                   (fullLog.outputJson ? (
                     <JsonViewer json={fullLog.outputJson} maxHeight="max-h-[70vh]" />

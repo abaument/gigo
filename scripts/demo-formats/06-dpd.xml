@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TrackingEvent>
+  <ParcelNumber>884517</ParcelNumber>
+  <Carrier>DPD</Carrier>
+  <Status>out for delivery</Status>
+  <Receiver>
+    <Name>Marc DUPONT</Name><Email>marc.dupont@exemple.fr</Email><Phone>+33611223355</Phone>
+    <City>Bron</City><PostCode>69500</PostCode>
+  </Receiver>
+  <WeightGrams>7800</WeightGrams>
+  <ShippedAt>2026-09-19T06:45:00</ShippedAt>
+  <EstimatedDelivery>2026-09-21</EstimatedDelivery>
+  <HasException>false</HasException>
+</TrackingEvent>

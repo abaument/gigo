@@ -150,10 +150,15 @@ export async function POST(
     // 5. Parse — JSON, XML, CSV or a spreadsheet, decided by the content type,
     // then by the bytes themselves
     let inputJson: unknown;
+    let inputFormat: string;
     try {
-      inputJson = looksLikeXlsx(read.bytes)
-        ? parseXlsx(read.bytes)
-        : parseInput(body, detectFormat(body, request.headers.get('content-type')));
+      if (looksLikeXlsx(read.bytes)) {
+        inputFormat = 'xlsx';
+        inputJson = parseXlsx(read.bytes);
+      } else {
+        inputFormat = detectFormat(body, request.headers.get('content-type'));
+        inputJson = parseInput(body, inputFormat as 'json' | 'xml' | 'csv');
+      }
     } catch (error) {
       if (error instanceof FormatError) {
         return jsonError(400, error.code, error.message);
@@ -167,6 +172,9 @@ export async function POST(
       inputJson,
       forward: true,
       isTest: false,
+      inputFormat,
+      // a workbook is binary: the readable trace is the rows it yielded
+      inputRaw: inputFormat === 'xlsx' ? undefined : body,
       sourceIp,
       userAgent,
     });

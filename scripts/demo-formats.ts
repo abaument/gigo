@@ -15,7 +15,8 @@
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => {
@@ -26,11 +27,11 @@ const flag = (name: string) => {
 const BASE = args.includes('--local')
   ? 'http://localhost:3000'
   : 'https://gigo-two.vercel.app';
-const ADAPTER = flag('adapter') ?? '22e6e883-d6f5-4c89-9481-121de25c8ed3';
-const SECRET = flag('secret') ?? 'whsec_demo_eg6mngKUbon3';
+const ADAPTER = flag('adapter') ?? 'cae78954-cf77-4002-9b4f-e47172f80775';
+const SECRET = flag('secret') ?? 'whsec_IBB4HD8ePiJM0VWME1RYWDSIPjHEPhP9';
 const PAUSE_MS = args.includes('--slow') ? 1000 : 150;
 
-const DIR = join(import.meta.dir, 'demo-formats');
+const DIR = join(dirname(fileURLToPath(import.meta.url)), 'demo-formats');
 
 const CONTENT_TYPE: Record<string, string> = {
   json: 'application/json',
@@ -67,11 +68,15 @@ async function send(file: string) {
 
 function summarise(data: Record<string, unknown> | undefined): string {
   if (!data) return '';
-  const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
-  const amount = typeof data.amount_paid_cents === 'number'
-    ? `${(data.amount_paid_cents / 100).toFixed(2)} EUR`
-    : '';
-  return [name, data.email, data.ticket_type, amount, data.registered_at]
+  const weight = typeof data.weight_grams === 'number' ? `${data.weight_grams} g` : '';
+  return [
+    data.tracking_number,
+    data.status,
+    data.recipient_name,
+    data.delivery_city,
+    weight,
+    data.incident === true ? 'incident' : '',
+  ]
     .filter(Boolean)
     .join('  ');
 }
@@ -83,7 +88,7 @@ const files = readdirSync(DIR)
   .sort();
 
 console.log();
-console.log(colour.bold('  Dix fichiers, quatre formats, un seul connecteur'));
+console.log(colour.bold('  Quatre transporteurs, quatre formats, un seul suivi'));
 console.log(colour.dim(`  ${BASE}/api/webhook/${ADAPTER}`));
 console.log();
 console.log(

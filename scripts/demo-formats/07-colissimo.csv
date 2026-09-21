@@ -1,0 +1,2 @@
+numero,transporteur,statut,destinataire,email,telephone,ville,code_postal,poids,expedie_le,livraison_prevue,incident
+COL 2026 884518,Colissimo,Remis au gardien,Sophie Leroy,sophie.leroy@Exemple.FR,06.77.88.99.00,Lyon 7e,69007,1,2 kilos,19/09/2026,22/09/2026,non

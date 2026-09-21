@@ -1,0 +1,2 @@
+numero;transporteur;statut;destinataire;email;telephone;ville;code_postal;poids;expedie_le;livraison_prevue;incident
+COL 2026 884519;Colissimo;Retard de tournee;Ahmed Benali; A.Benali@exemple.fr ;06 99 88 77 66;Vaulx-en-Velin;69120;5,6 kilos;18/09/2026;21/09/2026;oui

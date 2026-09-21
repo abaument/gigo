@@ -1,0 +1,19 @@
+{
+ "NUM_COLIS": "  col-2026-884513 ",
+ "transporteur": "CHRONOPOST",
+ "etat": "LIVRE",
+ "destinataire": {
+  "nom_complet": "MARTIN jean-pierre",
+  "mail": "  JP.Martin@Exemple.FR ",
+  "tel": "06 22 33 44 55",
+  "adresse": "14 rue d Austerlitz, 69004 lyon"
+ },
+ "poids_affiche": "0,85 kg",
+ "date_expedition": "17/09/2026 09:15",
+ "livraison_estimee": "19/09/2026",
+ "incident": "non",
+ "meta_interne": {
+  "tournee": "LYO-7",
+  "scan": "sess_2f2a"
+ }
+}

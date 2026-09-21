@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TrackingEvent>
+  <ParcelNumber>884515</ParcelNumber>
+  <Carrier>DPD</Carrier>
+  <Status>in transit</Status>
+  <Receiver>
+    <Name>Theo GARNIER</Name><Email>T.GARNIER@exemple.fr</Email><Phone>+33 6 11 22 33 44</Phone>
+    <City>Villeurbanne</City><PostCode>69100</PostCode>
+  </Receiver>
+  <WeightGrams>3200</WeightGrams>
+  <ShippedAt>2026-09-18T07:05:00</ShippedAt>
+  <EstimatedDelivery>2026-09-22</EstimatedDelivery>
+  <HasException>false</HasException>
+</TrackingEvent>

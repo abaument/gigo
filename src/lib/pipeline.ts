@@ -18,6 +18,9 @@ import { checkMonthlyQuota, recordUsage } from '@/lib/usage';
 import { resolveApiKey } from '@/lib/api-keys';
 import { captureLearnings, getPromptLearnings } from '@/lib/learnings';
 import { applyRule } from '@/lib/jsonata-rule';
+
+/** A log is for reading, not for archiving: keep the original body bounded. */
+const MAX_RAW_CHARS = 20_000;
 import { DATA_FORMATS, type DataFormat } from '@/lib/formats';
 
 /** The column is a plain string: fall back to JSON on anything unexpected. */
@@ -57,6 +60,10 @@ export interface PipelineArgs {
   replayOriginalFailed?: boolean;
   /** playground comparison mode: run WITHOUT the learned knowledge */
   ignoreLearnings?: boolean;
+  /** what the caller actually sent, when it was not JSON */
+  inputFormat?: string;
+  /** the body before conversion, so the log can show it as received */
+  inputRaw?: string;
   sourceIp?: string;
   userAgent?: string;
 }
@@ -94,6 +101,8 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
         data: {
           adapterId: adapter.id,
           inputJson: JSON.stringify(inputJson, null, 2),
+          inputFormat: args.inputFormat ?? null,
+          inputRaw: args.inputRaw?.slice(0, MAX_RAW_CHARS) ?? null,
           success: false,
           error: transform.error,
           totalDuration: Date.now() - startTime,
@@ -192,6 +201,8 @@ export async function runTransformation(args: PipelineArgs): Promise<PipelineRes
       data: {
         adapterId: adapter.id,
         inputJson: JSON.stringify(inputJson, null, 2),
+        inputFormat: args.inputFormat ?? null,
+        inputRaw: args.inputRaw?.slice(0, MAX_RAW_CHARS) ?? null,
         outputJson: transform.success ? JSON.stringify(transform.data, null, 2) : null,
         success: transform.success,
         error: transform.success

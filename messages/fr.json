@@ -233,7 +233,10 @@
     "stepForward": "Livraison",
     "stepTotal": "Total",
     "sourceLabel": "Source",
-    "detailLoadError": "Impossible de charger le détail de ce log"
+    "detailLoadError": "Impossible de charger le détail de ce log",
+    "receivedAs": "tel que reçu, avant conversion",
+    "convertedTo": "converti pour le moteur",
+    "binaryInput": "Fichier binaire : seules les lignes extraites sont conservées."
   },
   "toasts": {
     "adapterCreated": "Adaptateur créé",

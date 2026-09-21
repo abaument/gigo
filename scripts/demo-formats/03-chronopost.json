@@ -1,0 +1,19 @@
+{
+ "NUM_COLIS": "  col-2026-884514 ",
+ "transporteur": "CHRONOPOST",
+ "etat": "INCIDENT ADRESSE",
+ "destinataire": {
+  "nom_complet": "FAURE camille",
+  "mail": "  camille.faure@exemple.fr ",
+  "tel": "06 45 87 23 10",
+  "adresse": "3 quai Perrache, 69002 LYON"
+ },
+ "poids_affiche": "12,00 kg",
+ "date_expedition": "16/09/2026 14:40",
+ "livraison_estimee": "20/09/2026",
+ "incident": "oui",
+ "meta_interne": {
+  "tournee": "LYO-7",
+  "scan": "sess_3f2a"
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "NUM_COLIS": "  col-2026-884512 ",
+ "transporteur": "CHRONOPOST",
+ "etat": "EN COURS DE LIVRAISON",
+ "destinataire": {
+  "nom_complet": "CHERIF nadia",
+  "mail": "  Nadia.Cherif@Exemple.FR ",
+  "tel": "06 12 34 56 78",
+  "adresse": "22 rue Franklin, 69100 villeurbanne"
+ },
+ "poids_affiche": "2,45 kg",
+ "date_expedition": "18/09/2026 08:30",
+ "livraison_estimee": "21/09/2026",
+ "incident": "non",
+ "meta_interne": {
+  "tournee": "LYO-7",
+  "scan": "sess_1f2a"
+ }
+}

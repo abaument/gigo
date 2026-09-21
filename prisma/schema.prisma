@@ -161,7 +161,13 @@ model TransformationLog {
   adapterId String  @map("adapter_id") @db.Uuid
 
   // Transformation Data
-  inputJson  String  @map("input_json") // Original JSON payload
+  inputJson  String  @map("input_json") // Payload as the engine saw it, always JSON
+  /// Format the caller actually sent: "json", "xml", "csv" or "xlsx".
+  /// Null on older rows, which all predate multi-format input.
+  inputFormat String? @map("input_format")
+  /// The body exactly as received, before conversion. Kept so a log shows the
+  /// XML or the spreadsheet rows the sender wrote, not only their JSON form.
+  inputRaw    String? @map("input_raw")
   outputJson String? @map("output_json") // Transformed JSON
   success    Boolean @default(false)
   error      String?

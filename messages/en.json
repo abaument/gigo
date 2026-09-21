@@ -233,7 +233,10 @@
     "stepForward": "Forward",
     "stepTotal": "Total",
     "sourceLabel": "Source",
-    "detailLoadError": "Could not load this log's details"
+    "detailLoadError": "Could not load this log's details",
+    "receivedAs": "as received, before conversion",
+    "convertedTo": "converted for the engine",
+    "binaryInput": "Binary file: only the extracted rows are kept."
   },
   "toasts": {
     "adapterCreated": "Adapter created",

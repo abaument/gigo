@@ -659,6 +659,8 @@ export type LogListItem = {
   isTest: boolean;
   replayOfId: string | null;
   sourceIp: string | null;
+  /** format the caller sent, null on rows written before multi-format input */
+  inputFormat: string | null;
   createdAt: Date;
 };
 
@@ -716,6 +718,7 @@ export async function getAdapterLogs(
       isTest: true,
       replayOfId: true,
       sourceIp: true,
+      inputFormat: true,
       createdAt: true,
     },
   });

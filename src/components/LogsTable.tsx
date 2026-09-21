@@ -107,6 +107,12 @@ export function LogsTable({
                 >
                   {log.modelName ?? log.provider ?? '—'}
                 </span>
+                {/* the format the caller sent, when it was not JSON */}
+                {log.inputFormat && log.inputFormat !== 'json' && (
+                  <span className="text-[10px] text-amber font-mono uppercase">
+                    {log.inputFormat}
+                  </span>
+                )}
               </div>
               <div className="col-span-2 sm:col-span-3 max-sm:order-4 sm:text-right">
                 <span className="text-xs text-clay font-accent" suppressHydrationWarning>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TrackingEvent>
+  <ParcelNumber>884516</ParcelNumber>
+  <Carrier>DPD</Carrier>
+  <Status>delivered</Status>
+  <Receiver>
+    <Name>Lucie BERNARD</Name><Email>lucie.bernard@exemple.fr</Email><Phone>0033 6 55 66 77 88</Phone>
+    <City>Lyon</City><PostCode>69003</PostCode>
+  </Receiver>
+  <WeightGrams>450</WeightGrams>
+  <ShippedAt>2026-09-15T16:20:00</ShippedAt>
+  <EstimatedDelivery>2026-09-17</EstimatedDelivery>
+  <HasException>false</HasException>
+</TrackingEvent>
