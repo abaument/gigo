@@ -76,7 +76,11 @@ function summarise(data: Record<string, unknown> | undefined): string {
     .join('  ');
 }
 
-const files = readdirSync(DIR).filter((f) => !f.startsWith('.')).sort();
+// iCloud drops conflict copies named "file 2.csv" into synced folders, and
+// sending those would double the demo without anybody noticing
+const files = readdirSync(DIR)
+  .filter((f) => !f.startsWith('.') && !/ \d+\.[a-z]+$/i.test(f))
+  .sort();
 
 console.log();
 console.log(colour.bold('  Dix fichiers, quatre formats, un seul connecteur'));
