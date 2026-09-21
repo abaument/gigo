@@ -1,0 +1,20 @@
+{
+ "billet": {
+  "type": "early bird",
+  "prix_affiche": "99,00 €"
+ },
+ "participant": {
+  "civilite": "M.",
+  "PRENOM": "CAMILLE",
+  "nom_famille": "faure",
+  "mail_pro": "camille.faure@exemple.fr",
+  "societe": "Atryon",
+  "poste": "Product Designer"
+ },
+ "optin_newsletter": "OUI",
+ "date_inscription": "16/06/2026",
+ "tracking": {
+  "utm_source": "linkedin_ads",
+  "session": "sess_2a4f"
+ }
+}

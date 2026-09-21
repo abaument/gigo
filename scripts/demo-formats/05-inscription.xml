@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inscription>
+  <billet><type>STANDARD</type><prix_affiche>149,00 €</prix_affiche></billet>
+  <participant>
+    <civilite>M.</civilite>
+    <PRENOM>lucie</PRENOM><nom_famille>BERNARD</nom_famille>
+    <mail_pro>Lucie.Bernard@Exemple.FR</mail_pro><societe>Catalog</societe><poste>Data</poste>
+  </participant>
+  <optin_newsletter>oui</optin_newsletter>
+  <date_inscription>18/06/2026</date_inscription>
+</inscription>

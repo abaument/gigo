@@ -1,0 +1,20 @@
+{
+ "billet": {
+  "type": "EARLY BIRD - 2 jours",
+  "prix_affiche": "99,00 €"
+ },
+ "participant": {
+  "civilite": "M.",
+  "PRENOM": "nadia",
+  "nom_famille": "CHERIF",
+  "mail_pro": "Nadia.Cherif@Exemple.FR",
+  "societe": "Ninkasi Gerland",
+  "poste": "Dir. marketing"
+ },
+ "optin_newsletter": "oui",
+ "date_inscription": "14/06/2026",
+ "tracking": {
+  "utm_source": "linkedin_ads",
+  "session": "sess_0a4f"
+ }
+}
