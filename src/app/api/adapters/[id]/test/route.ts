@@ -22,7 +22,17 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const MAX_PAYLOAD_BYTES = 1_048_576; // 1 MB
-const TESTS_PER_MINUTE = 20;
+/**
+ * Playground budget per account and per minute. The sandbox is authenticated
+ * and the real spend guard is the monthly token quota, so this cap only exists
+ * to stop a loop, not to ration normal use. Twenty turned out to be reached
+ * during a rehearsal, because failed runs are counted too: an adapter whose
+ * provider key is missing fails instantly and still burns an attempt.
+ */
+const TESTS_PER_MINUTE = (() => {
+  const configured = Number(process.env.PLAYGROUND_TESTS_PER_MINUTE);
+  return Number.isFinite(configured) && configured > 0 ? configured : 120;
+})();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,7 +81,11 @@ export async function POST(
     const rate = await checkRateLimit(`test:${user.id}`, TESTS_PER_MINUTE);
     if (!rate.allowed) {
       return NextResponse.json(
-        { success: false, error: 'Too many test requests', code: 'RATE_LIMITED' },
+        {
+          success: false,
+          error: `Too many test requests, retry in ${rate.retryAfterSec}s`,
+          code: 'RATE_LIMITED',
+        },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } }
       );
     }
