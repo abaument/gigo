@@ -36,7 +36,10 @@ const BASE = args.includes('--local')
   : 'https://gigo-two.vercel.app';
 const ADAPTER = flag('adapter') ?? 'cae78954-cf77-4002-9b4f-e47172f80775';
 const SECRET = flag('secret') ?? 'whsec_IBB4HD8ePiJM0VWME1RYWDSIPjHEPhP9';
-const PAUSE_MS = args.includes('--slow') ? 1000 : 150;
+// Sending twelve files back to back opens twelve serverless instances at once,
+// which contend for the same pooled database connections and occasionally time
+// one another out. Half a second between files removes the contention entirely.
+const PAUSE_MS = args.includes('--slow') ? 1000 : 500;
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), 'demo-formats');
 
@@ -80,15 +83,28 @@ async function send(file: string) {
   const bytes = readFileSync(join(DIR, file));
   const started = Date.now();
 
-  const response = await fetch(`${BASE}/api/webhook/${ADAPTER}`, {
-    method: 'POST',
-    headers: { 'Content-Type': CONTENT_TYPE[ext] ?? 'application/octet-stream', 'X-Webhook-Secret': SECRET },
-    body: bytes,
-  });
+  // one retry: a transient infrastructure hiccup should not become a red line
+  // in front of an audience when the very next attempt succeeds
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    response = await fetch(`${BASE}/api/webhook/${ADAPTER}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': CONTENT_TYPE[ext] ?? 'application/octet-stream',
+        'X-Webhook-Secret': SECRET,
+      },
+      body: bytes,
+    }).catch(() => null);
+
+    if (response && response.status < 500) break;
+    if (attempt === 0) await sleep(1500);
+  }
 
   const elapsed = Date.now() - started;
-  const body = await response.json().catch(() => ({}) as Record<string, unknown>);
-  return { ext, status: response.status, elapsed, body };
+  const body = response
+    ? await response.json().catch(() => ({}) as Record<string, unknown>)
+    : ({ message: 'aucune réponse du serveur' } as Record<string, unknown>);
+  return { ext, status: response?.status ?? 0, elapsed, body };
 }
 
 function summarise(data: Record<string, unknown> | undefined): string {
